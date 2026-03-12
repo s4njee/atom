@@ -1,9 +1,16 @@
+import { Line } from '@react-three/drei'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import { useRef, useState } from 'react'
 import * as THREE from 'three'
 
 const ORBITAL_SCALE = 0.82
+const ATOM_SCALES = {
+  H: 0.09,
+  C: 0.22,
+  N: 0.205,
+  O: 0.19,
+}
 const ELECTRON_TEXTURE = (() => {
   const size = 128
   const canvas = document.createElement('canvas')
@@ -494,6 +501,23 @@ function BondElectronPair({
   )
 }
 
+function StructuralBond({
+  start = [0, 0, 0],
+  end = [1, 0, 0],
+  color = '#6eaad8',
+  opacity = 0.55,
+}) {
+  return (
+    <Line
+      points={[start, end]}
+      color={color}
+      transparent
+      opacity={opacity}
+      lineWidth={1}
+    />
+  )
+}
+
 function PiBondElectron({ sign = 1, color = '#8fd0ff', speed = 12, phase = 0 }) {
   const electronRef = useRef(null)
   const trailRef = useRef(null)
@@ -608,8 +632,8 @@ function OxygenMolecule() {
 
   return (
     <group ref={moleculeRef}>
-      <Nucleus position={[-separation, 0, 0]} scale={0.2} />
-      <Nucleus position={[separation, 0, 0]} scale={0.2} />
+      <Nucleus position={[-separation, 0, 0]} scale={ATOM_SCALES.O} />
+      <Nucleus position={[separation, 0, 0]} scale={ATOM_SCALES.O} />
       <SigmaBondCloud />
       <PiBondCloud offset={[0, 0.64, 0]} />
       <PiBondCloud offset={[0, -0.64, 0]} />
@@ -643,14 +667,14 @@ function EthyleneMolecule() {
     <group ref={moleculeRef}>
       <Nucleus
         position={carbonLeft}
-        scale={0.22}
+        scale={ATOM_SCALES.C}
         color="#294866"
         emissive="#1d3550"
         emissiveIntensity={1.55}
       />
       <Nucleus
         position={carbonRight}
-        scale={0.22}
+        scale={ATOM_SCALES.C}
         color="#294866"
         emissive="#1d3550"
         emissiveIntensity={1.55}
@@ -660,7 +684,7 @@ function EthyleneMolecule() {
         <Nucleus
           key={`h-${index}`}
           position={position}
-          scale={0.12}
+          scale={ATOM_SCALES.H}
           color="#7ea7c9"
           emissive="#40607f"
           emissiveIntensity={0.9}
@@ -740,14 +764,14 @@ function EthaneMolecule() {
     <group ref={moleculeRef}>
       <Nucleus
         position={carbonLeft}
-        scale={0.22}
+        scale={ATOM_SCALES.C}
         color="#294866"
         emissive="#1d3550"
         emissiveIntensity={1.55}
       />
       <Nucleus
         position={carbonRight}
-        scale={0.22}
+        scale={ATOM_SCALES.C}
         color="#294866"
         emissive="#1d3550"
         emissiveIntensity={1.55}
@@ -757,7 +781,7 @@ function EthaneMolecule() {
         <Nucleus
           key={`ethane-h-${index}`}
           position={position}
-          scale={0.12}
+          scale={ATOM_SCALES.H}
           color="#7ea7c9"
           emissive="#40607f"
           emissiveIntensity={0.9}
@@ -825,6 +849,104 @@ function EthaneMolecule() {
   )
 }
 
+function CaffeineMolecule() {
+  const moleculeRef = useRef(null)
+  const atoms = {
+    c1: [-0.98, 0.46, 0],
+    n2: [-0.18, 1.02, 0],
+    c3: [0.7, 0.74, 0],
+    n4: [1.02, -0.08, 0],
+    c5: [0.28, -0.72, 0],
+    n6: [-0.56, -0.48, 0],
+    c7: [-1.28, -1.08, 0],
+    n8: [-0.38, -1.58, 0],
+    c9: [0.5, -1.3, 0],
+    o1: [-1.72, 0.96, 0],
+    o2: [1.14, -1.84, 0],
+    m1: [-0.04, 1.96, 0],
+    m2: [1.96, 0.18, 0],
+    m3: [-0.48, -2.5, 0],
+  }
+
+  const atomDefs = [
+    { key: 'c1', element: 'C', scale: ATOM_SCALES.C },
+    { key: 'n2', element: 'N', scale: ATOM_SCALES.N },
+    { key: 'c3', element: 'C', scale: ATOM_SCALES.C },
+    { key: 'n4', element: 'N', scale: ATOM_SCALES.N },
+    { key: 'c5', element: 'C', scale: ATOM_SCALES.C },
+    { key: 'n6', element: 'N', scale: ATOM_SCALES.N },
+    { key: 'c7', element: 'C', scale: ATOM_SCALES.C },
+    { key: 'n8', element: 'N', scale: ATOM_SCALES.N },
+    { key: 'c9', element: 'C', scale: ATOM_SCALES.C },
+    { key: 'o1', element: 'O', scale: ATOM_SCALES.O },
+    { key: 'o2', element: 'O', scale: ATOM_SCALES.O },
+    { key: 'm1', element: 'C', scale: ATOM_SCALES.C },
+    { key: 'm2', element: 'C', scale: ATOM_SCALES.C },
+    { key: 'm3', element: 'C', scale: ATOM_SCALES.C },
+  ]
+
+  const atomStyle = {
+    C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
+    N: { color: '#c06aa6', emissive: '#7c3d67', emissiveIntensity: 1.4 },
+    O: { color: '#b44646', emissive: '#7a1f1f', emissiveIntensity: 1.25 },
+    H: { color: '#7ea7c9', emissive: '#40607f', emissiveIntensity: 0.88 },
+  }
+
+  const bondDefs = [
+    ['c1', 'n2'], ['n2', 'c3'], ['c3', 'n4'], ['n4', 'c5'], ['c5', 'n6'], ['n6', 'c1'],
+    ['n6', 'c7'], ['c7', 'n8'], ['n8', 'c9'], ['c9', 'c5'],
+    ['c1', 'o1'], ['c9', 'o2'],
+    ['n2', 'm1'], ['n4', 'm2'], ['n8', 'm3'],
+  ]
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime()
+
+    moleculeRef.current.rotation.y = t * 0.09
+    moleculeRef.current.rotation.x = Math.sin(t * 0.18) * 0.04
+    moleculeRef.current.position.y = Math.sin(t * 0.38) * 0.05
+  })
+
+  return (
+    <group ref={moleculeRef}>
+      {atomDefs.map(({ key, element, scale }) => (
+        <Nucleus
+          key={key}
+          position={atoms[key]}
+          scale={scale}
+          color={atomStyle[element].color}
+          emissive={atomStyle[element].emissive}
+          emissiveIntensity={atomStyle[element].emissiveIntensity}
+        />
+      ))}
+
+      {bondDefs.map(([startKey, endKey]) => (
+        <StructuralBond
+          key={`structure-${startKey}-${endKey}`}
+          start={atoms[startKey]}
+          end={atoms[endKey]}
+          color="#77b4df"
+          opacity={0.42}
+        />
+      ))}
+
+      {bondDefs.map(([startKey, endKey], index) => (
+        <BondElectronPair
+          key={`${startKey}-${endKey}`}
+          start={atoms[startKey]}
+          end={atoms[endKey]}
+          colorA={index < 12 ? '#9edbff' : '#7fc3ff'}
+          colorB={index < 12 ? '#d1f0ff' : '#b7e6ff'}
+          speed={8.6 + (index % 5) * 0.45}
+          phase={index * 0.41}
+          spread={index < 12 ? 0.09 : 0.07}
+          lineScale={index < 12 ? 0.3 : 0.26}
+        />
+      ))}
+    </group>
+  )
+}
+
 function AtomCloud() {
   const atomRef = useRef(null)
 
@@ -859,8 +981,10 @@ function AtomScene({ visualization }) {
         <OxygenMolecule />
       ) : visualization === 3 ? (
         <EthyleneMolecule />
-      ) : (
+      ) : visualization === 4 ? (
         <EthaneMolecule />
+      ) : (
+        <CaffeineMolecule />
       )}
       <EffectComposer>
         <Bloom
@@ -913,6 +1037,13 @@ export default function App() {
           onClick={() => setVisualization(4)}
         >
           4
+        </button>
+        <button
+          type="button"
+          className={`visualization-button ${visualization === 5 ? 'is-active' : ''}`}
+          onClick={() => setVisualization(5)}
+        >
+          5
         </button>
       </div>
     </main>
