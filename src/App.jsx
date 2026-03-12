@@ -739,164 +739,50 @@ function EthyleneMolecule() {
   )
 }
 
-function EthaneMolecule() {
-  const moleculeRef = useRef(null)
-  const carbonLeft = [-0.84, 0, 0]
-  const carbonRight = [0.84, 0, 0]
-  const hydrogens = [
-    [-1.7, 0.86, 0.38],
-    [-1.7, -0.86, 0.38],
-    [-1.58, 0, -0.98],
-    [1.7, 0.86, -0.38],
-    [1.7, -0.86, -0.38],
-    [1.58, 0, 0.98],
-  ]
-
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime()
-
-    moleculeRef.current.rotation.y = t * 0.11
-    moleculeRef.current.rotation.x = Math.sin(t * 0.18) * 0.05
-    moleculeRef.current.position.y = Math.sin(t * 0.4) * 0.06
-  })
-
-  return (
-    <group ref={moleculeRef}>
-      <Nucleus
-        position={carbonLeft}
-        scale={ATOM_SCALES.C}
-        color="#294866"
-        emissive="#1d3550"
-        emissiveIntensity={1.55}
-      />
-      <Nucleus
-        position={carbonRight}
-        scale={ATOM_SCALES.C}
-        color="#294866"
-        emissive="#1d3550"
-        emissiveIntensity={1.55}
-      />
-
-      {hydrogens.map((position, index) => (
-        <Nucleus
-          key={`ethane-h-${index}`}
-          position={position}
-          scale={ATOM_SCALES.H}
-          color="#7ea7c9"
-          emissive="#40607f"
-          emissiveIntensity={0.9}
-        />
-      ))}
-
-      <BondElectronPair
-        start={carbonLeft}
-        end={carbonRight}
-        colorA="#b7e6ff"
-        colorB="#8fd5ff"
-        speed={10.2}
-        phase={0.2}
-        spread={0.1}
-      />
-      <BondElectronPair
-        start={carbonLeft}
-        end={hydrogens[0]}
-        colorA="#82c8ff"
-        colorB="#b4e3ff"
-        speed={9.3}
-        phase={0.3}
-      />
-      <BondElectronPair
-        start={carbonLeft}
-        end={hydrogens[1]}
-        colorA="#82c8ff"
-        colorB="#b4e3ff"
-        speed={9.7}
-        phase={1.1}
-      />
-      <BondElectronPair
-        start={carbonLeft}
-        end={hydrogens[2]}
-        colorA="#82c8ff"
-        colorB="#b4e3ff"
-        speed={8.9}
-        phase={2.2}
-      />
-      <BondElectronPair
-        start={carbonRight}
-        end={hydrogens[3]}
-        colorA="#82c8ff"
-        colorB="#b4e3ff"
-        speed={9.5}
-        phase={0.8}
-      />
-      <BondElectronPair
-        start={carbonRight}
-        end={hydrogens[4]}
-        colorA="#82c8ff"
-        colorB="#b4e3ff"
-        speed={9.1}
-        phase={1.9}
-      />
-      <BondElectronPair
-        start={carbonRight}
-        end={hydrogens[5]}
-        colorA="#82c8ff"
-        colorB="#b4e3ff"
-        speed={8.7}
-        phase={2.7}
-      />
-    </group>
-  )
-}
-
 function CaffeineMolecule() {
   const moleculeRef = useRef(null)
-  const atoms = {
-    c1: [-0.98, 0.46, 0],
-    n2: [-0.18, 1.02, 0],
-    c3: [0.7, 0.74, 0],
-    n4: [1.02, -0.08, 0],
-    c5: [0.28, -0.72, 0],
-    n6: [-0.56, -0.48, 0],
-    c7: [-1.28, -1.08, 0],
-    n8: [-0.38, -1.58, 0],
-    c9: [0.5, -1.3, 0],
-    o1: [-1.72, 0.96, 0],
-    o2: [1.14, -1.84, 0],
-    m1: [-0.04, 1.96, 0],
-    m2: [1.96, 0.18, 0],
-    m3: [-0.48, -2.5, 0],
-  }
-
+  const scale = 0.58
   const atomDefs = [
-    { key: 'c1', element: 'C', scale: ATOM_SCALES.C },
-    { key: 'n2', element: 'N', scale: ATOM_SCALES.N },
-    { key: 'c3', element: 'C', scale: ATOM_SCALES.C },
-    { key: 'n4', element: 'N', scale: ATOM_SCALES.N },
-    { key: 'c5', element: 'C', scale: ATOM_SCALES.C },
-    { key: 'n6', element: 'N', scale: ATOM_SCALES.N },
-    { key: 'c7', element: 'C', scale: ATOM_SCALES.C },
-    { key: 'n8', element: 'N', scale: ATOM_SCALES.N },
-    { key: 'c9', element: 'C', scale: ATOM_SCALES.C },
-    { key: 'o1', element: 'O', scale: ATOM_SCALES.O },
-    { key: 'o2', element: 'O', scale: ATOM_SCALES.O },
-    { key: 'm1', element: 'C', scale: ATOM_SCALES.C },
-    { key: 'm2', element: 'C', scale: ATOM_SCALES.C },
-    { key: 'm3', element: 'C', scale: ATOM_SCALES.C },
+    // PubChem CID 2519, 3D conformer heavy-atom coordinates.
+    { key: 'a1', element: 'O', scale: ATOM_SCALES.O, position: [0.4700 * scale, 2.5688 * scale, 0.0006 * scale] },
+    { key: 'a2', element: 'O', scale: ATOM_SCALES.O, position: [-3.1271 * scale, -0.4436 * scale, -0.0003 * scale] },
+    { key: 'a3', element: 'N', scale: ATOM_SCALES.N, position: [-0.9686 * scale, -1.3125 * scale, 0] },
+    { key: 'a4', element: 'N', scale: ATOM_SCALES.N, position: [2.2182 * scale, 0.1412 * scale, -0.0003 * scale] },
+    { key: 'a5', element: 'N', scale: ATOM_SCALES.N, position: [-1.3477 * scale, 1.0797 * scale, -0.0001 * scale] },
+    { key: 'a6', element: 'N', scale: ATOM_SCALES.N, position: [1.4119 * scale, -1.9372 * scale, 0.0002 * scale] },
+    { key: 'a7', element: 'C', scale: ATOM_SCALES.C, position: [0.8579 * scale, 0.2592 * scale, -0.0008 * scale] },
+    { key: 'a8', element: 'C', scale: ATOM_SCALES.C, position: [0.3897 * scale, -1.0264 * scale, -0.0004 * scale] },
+    { key: 'a9', element: 'C', scale: ATOM_SCALES.C, position: [0.0307 * scale, 1.4220 * scale, -0.0006 * scale] },
+    { key: 'a10', element: 'C', scale: ATOM_SCALES.C, position: [-1.9061 * scale, -0.2495 * scale, -0.0004 * scale] },
+    { key: 'a11', element: 'C', scale: ATOM_SCALES.C, position: [2.5032 * scale, -1.1998 * scale, 0.0003 * scale] },
+    { key: 'a12', element: 'C', scale: ATOM_SCALES.C, position: [-1.4276 * scale, -2.6960 * scale, 0.0008 * scale] },
+    { key: 'a13', element: 'C', scale: ATOM_SCALES.C, position: [3.1926 * scale, 1.2061 * scale, 0.0003 * scale] },
+    { key: 'a14', element: 'C', scale: ATOM_SCALES.C, position: [-2.2969 * scale, 2.1881 * scale, 0.0007 * scale] },
   ]
+  const atoms = Object.fromEntries(atomDefs.map(({ key, position }) => [key, position]))
 
   const atomStyle = {
     C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
     N: { color: '#c06aa6', emissive: '#7c3d67', emissiveIntensity: 1.4 },
     O: { color: '#b44646', emissive: '#7a1f1f', emissiveIntensity: 1.25 },
-    H: { color: '#7ea7c9', emissive: '#40607f', emissiveIntensity: 0.88 },
   }
 
   const bondDefs = [
-    ['c1', 'n2'], ['n2', 'c3'], ['c3', 'n4'], ['n4', 'c5'], ['c5', 'n6'], ['n6', 'c1'],
-    ['n6', 'c7'], ['c7', 'n8'], ['n8', 'c9'], ['c9', 'c5'],
-    ['c1', 'o1'], ['c9', 'o2'],
-    ['n2', 'm1'], ['n4', 'm2'], ['n8', 'm3'],
+    ['a1', 'a9'],
+    ['a2', 'a10'],
+    ['a3', 'a8'],
+    ['a3', 'a10'],
+    ['a3', 'a12'],
+    ['a4', 'a7'],
+    ['a4', 'a11'],
+    ['a4', 'a13'],
+    ['a5', 'a9'],
+    ['a5', 'a10'],
+    ['a5', 'a14'],
+    ['a6', 'a8'],
+    ['a6', 'a11'],
+    ['a7', 'a8'],
+    ['a7', 'a9'],
   ]
 
   useFrame((state) => {
@@ -979,12 +865,10 @@ function AtomScene({ visualization }) {
         <Atom />
       ) : visualization === 2 ? (
         <OxygenMolecule />
-      ) : visualization === 3 ? (
-        <EthyleneMolecule />
       ) : visualization === 4 ? (
-        <EthaneMolecule />
-      ) : (
         <CaffeineMolecule />
+      ) : (
+        <EthyleneMolecule />
       )}
       <EffectComposer>
         <Bloom
@@ -1001,6 +885,8 @@ function AtomScene({ visualization }) {
 
 export default function App() {
   const [visualization, setVisualization] = useState(1)
+  const label =
+    visualization === 3 ? 'ethylene' : visualization === 4 ? 'caffeine' : ''
 
   return (
     <main className="app-shell">
@@ -1008,6 +894,8 @@ export default function App() {
         <color attach="background" args={['#040913']} />
         <AtomScene visualization={visualization} />
       </Canvas>
+
+      {label ? <div className="visualization-label">{label}</div> : null}
 
       <div className="visualization-nav">
         <button
@@ -1037,13 +925,6 @@ export default function App() {
           onClick={() => setVisualization(4)}
         >
           4
-        </button>
-        <button
-          type="button"
-          className={`visualization-button ${visualization === 5 ? 'is-active' : ''}`}
-          onClick={() => setVisualization(5)}
-        >
-          5
         </button>
       </div>
     </main>
