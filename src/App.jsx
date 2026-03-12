@@ -39,7 +39,6 @@ const ELECTRON_TEXTURE = (() => {
   texture.needsUpdate = true
   return texture
 })()
-
 function sampleGamma5(scale) {
   let sum = 0
 
@@ -501,6 +500,121 @@ function BondElectronPair({
   )
 }
 
+function AromaticRingElectron({
+  ringPoints,
+  color = '#a7ddff',
+  speed = 11.5,
+  phase = 0,
+  lift = 0.2,
+  side = 1,
+}) {
+  const electronRef = useRef(null)
+  const trailRef = useRef(null)
+  const historyRef = useRef(
+    Array.from({ length: 36 }, () => new THREE.Vector3()),
+  )
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime()
+    const curve = new THREE.CatmullRomCurve3(
+      ringPoints.map((point) => new THREE.Vector3(...point)),
+      true,
+      'catmullrom',
+      0.12,
+    )
+    const progress = ((t * speed) / 8 + phase) % 1
+    const basePoint = curve.getPointAt(progress)
+    const tangent = curve.getTangentAt(progress).normalize()
+    const center = ringPoints.reduce(
+      (sum, point) => sum.add(new THREE.Vector3(...point)),
+      new THREE.Vector3(),
+    ).multiplyScalar(1 / ringPoints.length)
+    const ringNormal = new THREE.Vector3()
+      .subVectors(new THREE.Vector3(...ringPoints[1]), new THREE.Vector3(...ringPoints[0]))
+      .cross(new THREE.Vector3().subVectors(new THREE.Vector3(...ringPoints[2]), new THREE.Vector3(...ringPoints[1])))
+      .normalize()
+    const radial = basePoint.clone().sub(center).normalize()
+    const hover = ringNormal.multiplyScalar(
+      side * (lift + Math.sin(t * 4.2 + phase * Math.PI * 2) * lift * 0.18),
+    )
+    const position = basePoint
+      .clone()
+      .add(radial.multiplyScalar(0.07))
+      .add(hover)
+      .add(tangent.multiplyScalar(Math.sin(t * 3.3 + phase * Math.PI * 2) * 0.02))
+
+    electronRef.current.position.copy(position)
+
+    const history = historyRef.current
+    const oldest = history.pop()
+    oldest.copy(position)
+    history.unshift(oldest)
+
+    if (trailRef.current) {
+      trailRef.current.geometry.setFromPoints(history)
+    }
+  })
+
+  return (
+    <>
+      <line ref={trailRef}>
+        <bufferGeometry />
+        <lineBasicMaterial color={color} transparent opacity={0.18} />
+      </line>
+
+      <group ref={electronRef}>
+        <sprite scale={[0.18, 0.18, 0.18]}>
+          <spriteMaterial
+            map={ELECTRON_TEXTURE}
+            color={color}
+            transparent
+            opacity={0.95}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </sprite>
+        <sprite scale={[0.52, 0.52, 0.52]}>
+          <spriteMaterial
+            map={ELECTRON_TEXTURE}
+            color={color}
+            transparent
+            opacity={0.14}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </sprite>
+        <pointLight color={color} intensity={10} distance={2.4} decay={2} />
+      </group>
+    </>
+  )
+}
+
+function AromaticRingPair({
+  ringPoints,
+  colorA = '#9edbff',
+  colorB = '#d4f1ff',
+  speed = 11.5,
+}) {
+  return (
+    <>
+      <AromaticRingElectron
+        ringPoints={ringPoints}
+        color={colorA}
+        speed={speed}
+        phase={0}
+        side={1}
+      />
+      <AromaticRingElectron
+        ringPoints={ringPoints}
+        color={colorB}
+        speed={speed * 1.06}
+        phase={0.5}
+        side={-1}
+      />
+    </>
+  )
+}
+
 function StructuralBond({
   start = [0, 0, 0],
   end = [1, 0, 0],
@@ -833,6 +947,195 @@ function CaffeineMolecule() {
   )
 }
 
+function GlucoseMolecule() {
+  const moleculeRef = useRef(null)
+  const scale = 0.7
+  const atomDefs = [
+    // Approximate beta-D-glucopyranose chair conformation in ring form.
+    { key: 'o5', element: 'O', scale: ATOM_SCALES.O, position: [-0.72 * scale, 0.92 * scale, 0.1 * scale] },
+    { key: 'c1', element: 'C', scale: ATOM_SCALES.C, position: [0.34 * scale, 1.2 * scale, 0.42 * scale] },
+    { key: 'c2', element: 'C', scale: ATOM_SCALES.C, position: [1.28 * scale, 0.42 * scale, 0.04 * scale] },
+    { key: 'c3', element: 'C', scale: ATOM_SCALES.C, position: [1.02 * scale, -0.82 * scale, -0.38 * scale] },
+    { key: 'c4', element: 'C', scale: ATOM_SCALES.C, position: [-0.14 * scale, -1.18 * scale, -0.06 * scale] },
+    { key: 'c5', element: 'C', scale: ATOM_SCALES.C, position: [-1.02 * scale, -0.22 * scale, 0.34 * scale] },
+    { key: 'c6', element: 'C', scale: ATOM_SCALES.C, position: [-2.16 * scale, 0.18 * scale, 1.14 * scale] },
+    { key: 'o1', element: 'O', scale: ATOM_SCALES.O, position: [0.56 * scale, 2.28 * scale, 1.2 * scale] },
+    { key: 'o2', element: 'O', scale: ATOM_SCALES.O, position: [2.46 * scale, 0.78 * scale, 0.42 * scale] },
+    { key: 'o3', element: 'O', scale: ATOM_SCALES.O, position: [1.82 * scale, -1.7 * scale, -0.78 * scale] },
+    { key: 'o4', element: 'O', scale: ATOM_SCALES.O, position: [-0.4 * scale, -2.32 * scale, -0.86 * scale] },
+    { key: 'o6', element: 'O', scale: ATOM_SCALES.O, position: [-3.1 * scale, -0.34 * scale, 1.78 * scale] },
+  ]
+  const atoms = Object.fromEntries(atomDefs.map(({ key, position }) => [key, position]))
+
+  const atomStyle = {
+    C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
+    O: { color: '#b44646', emissive: '#7a1f1f', emissiveIntensity: 1.25 },
+  }
+
+  const bondDefs = [
+    ['o5', 'c1'],
+    ['c1', 'c2'],
+    ['c2', 'c3'],
+    ['c3', 'c4'],
+    ['c4', 'c5'],
+    ['c5', 'o5'],
+    ['c5', 'c6'],
+    ['c1', 'o1'],
+    ['c2', 'o2'],
+    ['c3', 'o3'],
+    ['c4', 'o4'],
+    ['c6', 'o6'],
+  ]
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime()
+
+    moleculeRef.current.rotation.y = t * 0.095
+    moleculeRef.current.rotation.x = Math.sin(t * 0.2) * 0.045
+    moleculeRef.current.rotation.z = Math.sin(t * 0.11) * 0.025
+    moleculeRef.current.position.y = Math.sin(t * 0.4) * 0.05
+  })
+
+  return (
+    <group ref={moleculeRef}>
+      {atomDefs.map(({ key, element, scale }) => (
+        <Nucleus
+          key={key}
+          position={atoms[key]}
+          scale={scale}
+          color={atomStyle[element].color}
+          emissive={atomStyle[element].emissive}
+          emissiveIntensity={atomStyle[element].emissiveIntensity}
+        />
+      ))}
+
+      {bondDefs.map(([startKey, endKey]) => (
+        <StructuralBond
+          key={`structure-${startKey}-${endKey}`}
+          start={atoms[startKey]}
+          end={atoms[endKey]}
+          color="#77b4df"
+          opacity={0.42}
+        />
+      ))}
+
+      {bondDefs.map(([startKey, endKey], index) => (
+        <BondElectronPair
+          key={`${startKey}-${endKey}`}
+          start={atoms[startKey]}
+          end={atoms[endKey]}
+          colorA={index < 7 ? '#8fd4ff' : '#9edbff'}
+          colorB={index < 7 ? '#bfe7ff' : '#d4f1ff'}
+          speed={8.4 + (index % 4) * 0.55}
+          phase={index * 0.46}
+          spread={index < 7 ? 0.085 : 0.07}
+          lineScale={index < 7 ? 0.28 : 0.24}
+        />
+      ))}
+    </group>
+  )
+}
+
+function EpinephrineMolecule() {
+  const moleculeRef = useRef(null)
+  const scale = 0.78
+  const atomDefs = [
+    // Approximate heavy-atom layout for epinephrine highlighting the catechol ring.
+    { key: 'c1', element: 'C', scale: ATOM_SCALES.C, position: [1.12 * scale, 0.04 * scale, 0.02 * scale] },
+    { key: 'c2', element: 'C', scale: ATOM_SCALES.C, position: [0.54 * scale, 0.98 * scale, 0.01 * scale] },
+    { key: 'c3', element: 'C', scale: ATOM_SCALES.C, position: [-0.56 * scale, 0.96 * scale, -0.02 * scale] },
+    { key: 'c4', element: 'C', scale: ATOM_SCALES.C, position: [-1.12 * scale, -0.02 * scale, -0.01 * scale] },
+    { key: 'c5', element: 'C', scale: ATOM_SCALES.C, position: [-0.54 * scale, -0.98 * scale, 0.02 * scale] },
+    { key: 'c6', element: 'C', scale: ATOM_SCALES.C, position: [0.56 * scale, -0.96 * scale, 0.01 * scale] },
+    { key: 'o3', element: 'O', scale: ATOM_SCALES.O, position: [-1.1 * scale, 1.78 * scale, -0.12 * scale] },
+    { key: 'o4', element: 'O', scale: ATOM_SCALES.O, position: [-2.26 * scale, -0.02 * scale, -0.16 * scale] },
+    { key: 'c7', element: 'C', scale: ATOM_SCALES.C, position: [2.28 * scale, 0.06 * scale, 0.2 * scale] },
+    { key: 'c8', element: 'C', scale: ATOM_SCALES.C, position: [3.18 * scale, -0.84 * scale, 0.66 * scale] },
+    { key: 'o8', element: 'O', scale: ATOM_SCALES.O, position: [3.42 * scale, -1.92 * scale, -0.12 * scale] },
+    { key: 'n1', element: 'N', scale: ATOM_SCALES.N, position: [4.26 * scale, -0.06 * scale, 0.92 * scale] },
+    { key: 'c9', element: 'C', scale: ATOM_SCALES.C, position: [5.34 * scale, -0.58 * scale, 1.58 * scale] },
+  ]
+  const atoms = Object.fromEntries(atomDefs.map(({ key, position }) => [key, position]))
+  const ringKeys = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6']
+  const ringPoints = ringKeys.map((key) => atoms[key])
+
+  const atomStyle = {
+    C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
+    N: { color: '#c06aa6', emissive: '#7c3d67', emissiveIntensity: 1.4 },
+    O: { color: '#b44646', emissive: '#7a1f1f', emissiveIntensity: 1.25 },
+  }
+
+  const bondDefs = [
+    ['c1', 'c2'],
+    ['c2', 'c3'],
+    ['c3', 'c4'],
+    ['c4', 'c5'],
+    ['c5', 'c6'],
+    ['c6', 'c1'],
+    ['c3', 'o3'],
+    ['c4', 'o4'],
+    ['c1', 'c7'],
+    ['c7', 'c8'],
+    ['c8', 'o8'],
+    ['c8', 'n1'],
+    ['n1', 'c9'],
+  ]
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime()
+
+    moleculeRef.current.rotation.y = -0.22 + t * 0.085
+    moleculeRef.current.rotation.x = Math.sin(t * 0.18) * 0.05
+    moleculeRef.current.rotation.z = 0.34 + Math.sin(t * 0.13) * 0.028
+    moleculeRef.current.position.y = Math.sin(t * 0.38) * 0.05
+  })
+
+  return (
+    <group ref={moleculeRef}>
+      {atomDefs.map(({ key, element, scale }) => (
+        <Nucleus
+          key={key}
+          position={atoms[key]}
+          scale={scale}
+          color={atomStyle[element].color}
+          emissive={atomStyle[element].emissive}
+          emissiveIntensity={atomStyle[element].emissiveIntensity}
+        />
+      ))}
+
+      {bondDefs.map(([startKey, endKey]) => (
+        <StructuralBond
+          key={`structure-${startKey}-${endKey}`}
+          start={atoms[startKey]}
+          end={atoms[endKey]}
+          color="#77b4df"
+          opacity={0.42}
+        />
+      ))}
+
+      {bondDefs
+        .filter(([startKey, endKey]) => !ringKeys.includes(startKey) || !ringKeys.includes(endKey))
+        .map(([startKey, endKey], index) => (
+          <BondElectronPair
+            key={`${startKey}-${endKey}`}
+            start={atoms[startKey]}
+            end={atoms[endKey]}
+            colorA={index < 3 ? '#8fd4ff' : '#9edbff'}
+            colorB={index < 3 ? '#bde7ff' : '#d4f1ff'}
+            speed={8.6 + (index % 4) * 0.5}
+            phase={index * 0.44}
+            spread={0.075}
+            lineScale={0.25}
+          />
+        ))}
+
+      <AromaticRingPair ringPoints={ringPoints} colorA="#8fd4ff" colorB="#d4f1ff" speed={11.8} />
+      <AromaticRingPair ringPoints={ringPoints} colorA="#7fc3ff" colorB="#bfe7ff" speed={11.1} />
+      <AromaticRingPair ringPoints={ringPoints} colorA="#9edbff" colorB="#e6f7ff" speed={10.6} />
+    </group>
+  )
+}
+
 function AtomCloud() {
   const atomRef = useRef(null)
 
@@ -865,6 +1168,8 @@ function AtomScene({ visualization }) {
         <Atom />
       ) : visualization === 2 ? (
         <OxygenMolecule />
+      ) : visualization === 5 ? (
+        <EpinephrineMolecule />
       ) : visualization === 4 ? (
         <CaffeineMolecule />
       ) : (
@@ -886,7 +1191,13 @@ function AtomScene({ visualization }) {
 export default function App() {
   const [visualization, setVisualization] = useState(1)
   const label =
-    visualization === 3 ? 'ethylene' : visualization === 4 ? 'caffeine' : ''
+    visualization === 3
+      ? 'ethylene'
+      : visualization === 4
+        ? 'caffeine'
+        : visualization === 5
+          ? 'epinephrine'
+        : ''
 
   return (
     <main className="app-shell">
@@ -925,6 +1236,13 @@ export default function App() {
           onClick={() => setVisualization(4)}
         >
           4
+        </button>
+        <button
+          type="button"
+          className={`visualization-button ${visualization === 5 ? 'is-active' : ''}`}
+          onClick={() => setVisualization(5)}
+        >
+          5
         </button>
       </div>
     </main>
