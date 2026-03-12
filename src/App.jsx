@@ -251,79 +251,21 @@ function SigmaBondElectron({ color = '#a8e0ff', speed = 11.5, phase = 0 }) {
   )
 }
 
+function SigmaBondPair({ colorA = '#c2ebff', colorB = '#8fd2ff', speedA = 11.8, speedB = 10.9 }) {
+  return (
+    <>
+      <SigmaBondElectron color={colorA} speed={speedA} phase={0} />
+      <SigmaBondElectron color={colorB} speed={speedB} phase={Math.PI * 0.75} />
+    </>
+  )
+}
+
 function SigmaBondCloud() {
   return null
 }
 
 function PiBondCloud({ offset = [0, 0.62, 0] }) {
   return null
-}
-
-function AntibondingElectron({ color = '#8fd0ff', speed = 12.5, phase = 0, sign = 1 }) {
-  const electronRef = useRef(null)
-  const trailRef = useRef(null)
-  const historyRef = useRef(
-    Array.from({ length: 32 }, () => new THREE.Vector3(0, sign * 0.9, 0)),
-  )
-
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime() * speed + phase
-    const py =
-      sign *
-      (0.92 +
-        Math.abs(Math.sin(t * 1.27)) * 0.42 +
-        Math.abs(Math.sin(t * 2.04)) * 0.12)
-    const px =
-      Math.sin(t * 2.2) * 1.18 +
-      Math.sin(t * 3.6) * 0.22
-    const pz =
-      Math.cos(t * 2.55) * 0.32 +
-      Math.sin(t * 4.1) * 0.08
-
-    electronRef.current.position.set(px, py, pz)
-
-    const history = historyRef.current
-    const oldest = history.pop()
-    oldest.set(px, py, pz)
-    history.unshift(oldest)
-
-    if (trailRef.current) {
-      trailRef.current.geometry.setFromPoints(history)
-    }
-  })
-
-  return (
-    <>
-      <line ref={trailRef}>
-        <bufferGeometry />
-        <lineBasicMaterial color={color} transparent opacity={0.22} />
-      </line>
-
-      <group ref={electronRef}>
-        <sprite scale={[0.22, 0.22, 0.22]}>
-          <spriteMaterial
-            map={ELECTRON_TEXTURE}
-            color={color}
-            transparent
-            opacity={0.95}
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-          />
-        </sprite>
-        <sprite scale={[0.72, 0.72, 0.72]}>
-          <spriteMaterial
-            map={ELECTRON_TEXTURE}
-            color={color}
-            transparent
-            opacity={0.16}
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-          />
-        </sprite>
-        <pointLight color={color} intensity={15} distance={3.2} decay={2} />
-      </group>
-    </>
-  )
 }
 
 function OrbitalCloud() {
@@ -412,19 +354,224 @@ function ElectronPair({ axis = 'y', lobeTightness = 1 }) {
   )
 }
 
-function Nucleus({ position = [0, 0, 0], scale = 0.24 }) {
+function Nucleus({
+  position = [0, 0, 0],
+  scale = 0.24,
+  color = '#23425d',
+  emissive = '#18334d',
+  emissiveIntensity = 1.4,
+}) {
   return (
     <mesh position={position} scale={scale}>
       <sphereGeometry args={[1, 24, 24]} />
       <meshStandardMaterial
-        color="#23425d"
-        emissive="#18334d"
-        emissiveIntensity={1.4}
+        color={color}
+        emissive={emissive}
+        emissiveIntensity={emissiveIntensity}
         roughness={0.35}
         metalness={0.08}
         toneMapped={false}
       />
     </mesh>
+  )
+}
+
+function BondElectron({
+  start = [0, 0, 0],
+  end = [1, 0, 0],
+  color = '#8fd4ff',
+  speed = 10,
+  phase = 0,
+  lineScale = 0.34,
+  spread = 0.12,
+}) {
+  const electronRef = useRef(null)
+  const trailRef = useRef(null)
+  const historyRef = useRef(
+    Array.from({ length: 24 }, () => new THREE.Vector3()),
+  )
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime() * speed + phase
+    const startVec = new THREE.Vector3(...start)
+    const endVec = new THREE.Vector3(...end)
+    const midpoint = startVec.clone().add(endVec).multiplyScalar(0.5)
+    const axis = endVec.clone().sub(startVec).normalize()
+    const length = startVec.distanceTo(endVec)
+    const reference = Math.abs(axis.y) < 0.92
+      ? new THREE.Vector3(0, 1, 0)
+      : new THREE.Vector3(1, 0, 0)
+    const normalA = axis.clone().cross(reference).normalize()
+    const normalB = axis.clone().cross(normalA).normalize()
+
+    const along = Math.sin(t * 1.7) * length * lineScale
+    const offsetA = Math.sin(t * 3.1) * spread
+    const offsetB = Math.cos(t * 2.6) * spread * 0.65
+
+    const position = midpoint
+      .clone()
+      .add(axis.multiplyScalar(along))
+      .add(normalA.multiplyScalar(offsetA))
+      .add(normalB.multiplyScalar(offsetB))
+
+    electronRef.current.position.copy(position)
+
+    const history = historyRef.current
+    const oldest = history.pop()
+    oldest.copy(position)
+    history.unshift(oldest)
+
+    if (trailRef.current) {
+      trailRef.current.geometry.setFromPoints(history)
+    }
+  })
+
+  return (
+    <>
+      <line ref={trailRef}>
+        <bufferGeometry />
+        <lineBasicMaterial color={color} transparent opacity={0.16} />
+      </line>
+
+      <group ref={electronRef}>
+        <sprite scale={[0.18, 0.18, 0.18]}>
+          <spriteMaterial
+            map={ELECTRON_TEXTURE}
+            color={color}
+            transparent
+            opacity={0.94}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </sprite>
+        <sprite scale={[0.5, 0.5, 0.5]}>
+          <spriteMaterial
+            map={ELECTRON_TEXTURE}
+            color={color}
+            transparent
+            opacity={0.12}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </sprite>
+        <pointLight color={color} intensity={10} distance={2.4} decay={2} />
+      </group>
+    </>
+  )
+}
+
+function BondElectronPair({
+  start,
+  end,
+  colorA = '#8fd4ff',
+  colorB = '#6fbfff',
+  speed = 10,
+  phase = 0,
+  lineScale = 0.34,
+  spread = 0.12,
+}) {
+  return (
+    <>
+      <BondElectron
+        start={start}
+        end={end}
+        color={colorA}
+        speed={speed}
+        phase={phase}
+        lineScale={lineScale}
+        spread={spread}
+      />
+      <BondElectron
+        start={start}
+        end={end}
+        color={colorB}
+        speed={speed * 0.96}
+        phase={phase + Math.PI * 0.78}
+        lineScale={lineScale}
+        spread={spread * 0.92}
+      />
+    </>
+  )
+}
+
+function PiBondElectron({ sign = 1, color = '#8fd0ff', speed = 12, phase = 0 }) {
+  const electronRef = useRef(null)
+  const trailRef = useRef(null)
+  const historyRef = useRef(
+    Array.from({ length: 26 }, () => new THREE.Vector3(0, sign * 0.55, 0)),
+  )
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime() * speed + phase
+    const position = new THREE.Vector3(
+      Math.sin(t * 1.9) * 0.92 + Math.sin(t * 3.2) * 0.14,
+      sign * (0.58 + Math.abs(Math.sin(t * 1.4)) * 0.28),
+      Math.cos(t * 2.3) * 0.16 + Math.sin(t * 4.1) * 0.04,
+    )
+
+    electronRef.current.position.copy(position)
+
+    const history = historyRef.current
+    const oldest = history.pop()
+    oldest.copy(position)
+    history.unshift(oldest)
+
+    if (trailRef.current) {
+      trailRef.current.geometry.setFromPoints(history)
+    }
+  })
+
+  return (
+    <>
+      <line ref={trailRef}>
+        <bufferGeometry />
+        <lineBasicMaterial color={color} transparent opacity={0.18} />
+      </line>
+
+      <group ref={electronRef}>
+        <sprite scale={[0.19, 0.19, 0.19]}>
+          <spriteMaterial
+            map={ELECTRON_TEXTURE}
+            color={color}
+            transparent
+            opacity={0.95}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </sprite>
+        <sprite scale={[0.56, 0.56, 0.56]}>
+          <spriteMaterial
+            map={ELECTRON_TEXTURE}
+            color={color}
+            transparent
+            opacity={0.14}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </sprite>
+        <pointLight color={color} intensity={11} distance={2.5} decay={2} />
+      </group>
+    </>
+  )
+}
+
+function PiBondPair({
+  sign = 1,
+  colorA = '#9dd8ff',
+  colorB = '#6fbfff',
+  speed = 11.9,
+  phase = 0,
+}) {
+  return (
+    <>
+      <PiBondElectron sign={sign} color={colorA} speed={speed} phase={phase} />
+      <PiBondElectron
+        sign={sign}
+        color={colorB}
+        speed={speed * 0.94}
+        phase={phase + Math.PI * 0.82}
+      />
+    </>
   )
 }
 
@@ -466,10 +613,214 @@ function OxygenMolecule() {
       <SigmaBondCloud />
       <PiBondCloud offset={[0, 0.64, 0]} />
       <PiBondCloud offset={[0, -0.64, 0]} />
-      <SigmaBondElectron color="#c2ebff" speed={11.8} phase={0} />
-      <SigmaBondElectron color="#8fd2ff" speed={10.9} phase={Math.PI * 0.75} />
-      <AntibondingElectron color="#98d8ff" speed={13.6} sign={1} />
-      <AntibondingElectron color="#66b8ff" speed={12.8} phase={Math.PI / 2} sign={-1} />
+      <SigmaBondPair />
+      <PiBondPair sign={1} colorA="#98d8ff" colorB="#69c1ff" speed={13.6} phase={0} />
+      <PiBondPair sign={-1} colorA="#66b8ff" colorB="#9fdfff" speed={12.8} phase={Math.PI / 2} />
+    </group>
+  )
+}
+
+function EthyleneMolecule() {
+  const moleculeRef = useRef(null)
+  const carbonLeft = [-0.92, 0, 0]
+  const carbonRight = [0.92, 0, 0]
+  const hydrogens = [
+    [-1.86, 0.98, 0],
+    [-1.86, -0.98, 0],
+    [1.86, 0.98, 0],
+    [1.86, -0.98, 0],
+  ]
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime()
+
+    moleculeRef.current.rotation.y = t * 0.12
+    moleculeRef.current.rotation.x = Math.sin(t * 0.2) * 0.035
+    moleculeRef.current.position.y = Math.sin(t * 0.45) * 0.06
+  })
+
+  return (
+    <group ref={moleculeRef}>
+      <Nucleus
+        position={carbonLeft}
+        scale={0.22}
+        color="#294866"
+        emissive="#1d3550"
+        emissiveIntensity={1.55}
+      />
+      <Nucleus
+        position={carbonRight}
+        scale={0.22}
+        color="#294866"
+        emissive="#1d3550"
+        emissiveIntensity={1.55}
+      />
+
+      {hydrogens.map((position, index) => (
+        <Nucleus
+          key={`h-${index}`}
+          position={position}
+          scale={0.12}
+          color="#7ea7c9"
+          emissive="#40607f"
+          emissiveIntensity={0.9}
+        />
+      ))}
+
+      <BondElectronPair
+        start={carbonLeft}
+        end={carbonRight}
+        colorA="#c7ebff"
+        colorB="#9fdfff"
+        speed={10.8}
+        phase={0}
+        spread={0.1}
+      />
+      <BondElectronPair
+        start={carbonLeft}
+        end={hydrogens[0]}
+        colorA="#7fc3ff"
+        colorB="#a7ddff"
+        speed={9.8}
+        phase={0.4}
+      />
+      <BondElectronPair
+        start={carbonLeft}
+        end={hydrogens[1]}
+        colorA="#7fc3ff"
+        colorB="#a7ddff"
+        speed={9.2}
+        phase={1.2}
+      />
+      <BondElectronPair
+        start={carbonRight}
+        end={hydrogens[2]}
+        colorA="#7fc3ff"
+        colorB="#a7ddff"
+        speed={10.1}
+        phase={2.1}
+      />
+      <BondElectronPair
+        start={carbonRight}
+        end={hydrogens[3]}
+        colorA="#7fc3ff"
+        colorB="#a7ddff"
+        speed={9.4}
+        phase={2.8}
+      />
+
+      <PiBondPair sign={1} colorA="#9dd8ff" colorB="#c5ebff" speed={11.9} phase={0} />
+      <PiBondPair sign={-1} colorA="#6fbfff" colorB="#9ed9ff" speed={11.1} phase={Math.PI * 0.7} />
+    </group>
+  )
+}
+
+function EthaneMolecule() {
+  const moleculeRef = useRef(null)
+  const carbonLeft = [-0.84, 0, 0]
+  const carbonRight = [0.84, 0, 0]
+  const hydrogens = [
+    [-1.7, 0.86, 0.38],
+    [-1.7, -0.86, 0.38],
+    [-1.58, 0, -0.98],
+    [1.7, 0.86, -0.38],
+    [1.7, -0.86, -0.38],
+    [1.58, 0, 0.98],
+  ]
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime()
+
+    moleculeRef.current.rotation.y = t * 0.11
+    moleculeRef.current.rotation.x = Math.sin(t * 0.18) * 0.05
+    moleculeRef.current.position.y = Math.sin(t * 0.4) * 0.06
+  })
+
+  return (
+    <group ref={moleculeRef}>
+      <Nucleus
+        position={carbonLeft}
+        scale={0.22}
+        color="#294866"
+        emissive="#1d3550"
+        emissiveIntensity={1.55}
+      />
+      <Nucleus
+        position={carbonRight}
+        scale={0.22}
+        color="#294866"
+        emissive="#1d3550"
+        emissiveIntensity={1.55}
+      />
+
+      {hydrogens.map((position, index) => (
+        <Nucleus
+          key={`ethane-h-${index}`}
+          position={position}
+          scale={0.12}
+          color="#7ea7c9"
+          emissive="#40607f"
+          emissiveIntensity={0.9}
+        />
+      ))}
+
+      <BondElectronPair
+        start={carbonLeft}
+        end={carbonRight}
+        colorA="#b7e6ff"
+        colorB="#8fd5ff"
+        speed={10.2}
+        phase={0.2}
+        spread={0.1}
+      />
+      <BondElectronPair
+        start={carbonLeft}
+        end={hydrogens[0]}
+        colorA="#82c8ff"
+        colorB="#b4e3ff"
+        speed={9.3}
+        phase={0.3}
+      />
+      <BondElectronPair
+        start={carbonLeft}
+        end={hydrogens[1]}
+        colorA="#82c8ff"
+        colorB="#b4e3ff"
+        speed={9.7}
+        phase={1.1}
+      />
+      <BondElectronPair
+        start={carbonLeft}
+        end={hydrogens[2]}
+        colorA="#82c8ff"
+        colorB="#b4e3ff"
+        speed={8.9}
+        phase={2.2}
+      />
+      <BondElectronPair
+        start={carbonRight}
+        end={hydrogens[3]}
+        colorA="#82c8ff"
+        colorB="#b4e3ff"
+        speed={9.5}
+        phase={0.8}
+      />
+      <BondElectronPair
+        start={carbonRight}
+        end={hydrogens[4]}
+        colorA="#82c8ff"
+        colorB="#b4e3ff"
+        speed={9.1}
+        phase={1.9}
+      />
+      <BondElectronPair
+        start={carbonRight}
+        end={hydrogens[5]}
+        colorA="#82c8ff"
+        colorB="#b4e3ff"
+        speed={8.7}
+        phase={2.7}
+      />
     </group>
   )
 }
@@ -502,7 +853,15 @@ function AtomScene({ visualization }) {
       <directionalLight position={[4, 4, 6]} intensity={1.35} color="#ffffff" />
       <directionalLight position={[-4, -2, 3]} intensity={0.5} color="#4da3ff" />
       <pointLight position={[0, 0, -5]} intensity={10} distance={18} color="#13304f" />
-      {visualization === 1 ? <Atom /> : <OxygenMolecule />}
+      {visualization === 1 ? (
+        <Atom />
+      ) : visualization === 2 ? (
+        <OxygenMolecule />
+      ) : visualization === 3 ? (
+        <EthyleneMolecule />
+      ) : (
+        <EthaneMolecule />
+      )}
       <EffectComposer>
         <Bloom
           mipmapBlur
@@ -540,6 +899,20 @@ export default function App() {
           onClick={() => setVisualization(2)}
         >
           2
+        </button>
+        <button
+          type="button"
+          className={`visualization-button ${visualization === 3 ? 'is-active' : ''}`}
+          onClick={() => setVisualization(3)}
+        >
+          3
+        </button>
+        <button
+          type="button"
+          className={`visualization-button ${visualization === 4 ? 'is-active' : ''}`}
+          onClick={() => setVisualization(4)}
+        >
+          4
         </button>
       </div>
     </main>
