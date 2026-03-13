@@ -1,7 +1,7 @@
 import { Line } from '@react-three/drei'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { EffectComposer, Bloom } from '@react-three/postprocessing'
-import { useRef, useState } from 'react'
+import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 
 const ORBITAL_SCALE = 0.82
@@ -39,6 +39,185 @@ const ELECTRON_TEXTURE = (() => {
   texture.needsUpdate = true
   return texture
 })()
+const CHROMATIC_ABERRATION_OFFSET = 0.004
+const CHROMATIC_OSCILLATION_SPEED = 3.2
+const XRAY_RIM_STRENGTH = 1.35
+const XRAY_RIM_POWER = 2.4
+const XRAY_RIM_COLOR = new THREE.Color(0xe8fbff)
+
+function isEditableTarget(target) {
+  return target instanceof HTMLElement && (
+    target.isContentEditable ||
+    target.tagName === 'INPUT' ||
+    target.tagName === 'TEXTAREA' ||
+    target.tagName === 'SELECT'
+  )
+}
+
+function createXrayMaterialController() {
+  const originalMaterialState = new WeakMap()
+  const xrayAnimatedMaterials = new Set()
+
+  const forEachMaterial = (root, callback) => {
+    root.traverse((child) => {
+      if (!child.isMesh || !child.material) return
+      const materials = Array.isArray(child.material) ? child.material : [child.material]
+      materials.forEach(callback)
+    })
+  }
+
+  const captureOriginalMaterialState = (material) => {
+    if (originalMaterialState.has(material)) return
+
+    originalMaterialState.set(material, {
+      color: material.color?.clone() ?? null,
+      emissive: material.emissive?.clone() ?? null,
+      emissiveIntensity: material.emissiveIntensity,
+      metalness: material.metalness,
+      roughness: material.roughness,
+      transparent: material.transparent,
+      opacity: material.opacity,
+      depthWrite: material.depthWrite,
+      side: material.side,
+      alphaTest: material.alphaTest,
+      alphaHash: material.alphaHash,
+      onBeforeCompile: material.onBeforeCompile,
+      customProgramCacheKey: material.customProgramCacheKey,
+    })
+  }
+
+  const restoreOriginalMaterialState = (material) => {
+    const original = originalMaterialState.get(material)
+    if (!original) return
+
+    if (original.color && material.color) material.color.copy(original.color)
+    if (original.emissive && material.emissive) material.emissive.copy(original.emissive)
+    if (material.emissiveIntensity !== undefined) material.emissiveIntensity = original.emissiveIntensity ?? 1
+    if (material.metalness !== undefined) material.metalness = original.metalness ?? material.metalness
+    if (material.roughness !== undefined) material.roughness = original.roughness ?? material.roughness
+    material.transparent = original.transparent
+    material.opacity = original.opacity
+    material.depthWrite = original.depthWrite
+    material.side = original.side
+    material.alphaTest = original.alphaTest
+    material.alphaHash = original.alphaHash
+    material.onBeforeCompile = original.onBeforeCompile
+    material.customProgramCacheKey = original.customProgramCacheKey
+    delete material.userData.xrayShader
+    delete material.userData.xrayShaderApplied
+    xrayAnimatedMaterials.delete(material)
+    material.needsUpdate = true
+  }
+
+  const applyXrayShader = (material) => {
+    if (
+      !material.isMeshStandardMaterial &&
+      !material.isMeshPhysicalMaterial &&
+      !material.isMeshPhongMaterial &&
+      !material.isMeshLambertMaterial
+    ) {
+      return
+    }
+
+    if (!('onBeforeCompile' in material) || material.userData.xrayShaderApplied) return
+
+    material.onBeforeCompile = (shader) => {
+      shader.uniforms.xrayRimColor = { value: XRAY_RIM_COLOR.clone() }
+      shader.uniforms.xrayRimStrength = { value: XRAY_RIM_STRENGTH }
+      shader.uniforms.xrayRimPower = { value: XRAY_RIM_POWER }
+      shader.uniforms.xrayTime = { value: 0 }
+      shader.uniforms.xrayPulse = { value: 0 }
+      shader.uniforms.xrayPhase = { value: 0 }
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <common>',
+        `#include <common>
+        uniform vec3 xrayRimColor;
+        uniform float xrayRimStrength;
+        uniform float xrayRimPower;
+        uniform float xrayTime;
+        uniform float xrayPulse;
+        uniform float xrayPhase;`,
+      )
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <output_fragment>',
+        `float xrayViewDot = abs(dot(normalize(vNormal), normalize(vViewPosition)));
+        float xrayRim = pow(1.0 - clamp(xrayViewDot, 0.0, 1.0), xrayRimPower);
+        float xrayScan = 0.55 + 0.45 * sin((gl_FragCoord.y * 0.18) - (xrayTime * 14.0));
+        float xrayNoise = sin(xrayTime * 24.0 + gl_FragCoord.y * 0.09)
+          + 0.65 * sin(xrayTime * 41.0 + gl_FragCoord.x * 0.05)
+          + 0.35 * sin(xrayTime * 67.0 + (gl_FragCoord.x + gl_FragCoord.y) * 0.025);
+        float xrayGate = smoothstep(0.2, 1.55, xrayNoise);
+        float xrayFlash = smoothstep(1.2, 1.9, xrayNoise);
+        float xrayLocalPulse = max(xrayGate * xrayScan, xrayFlash * 1.35);
+        float xraySyncPulse = max(xrayPulse, xrayLocalPulse * 0.45);
+        float scanlineWave = sin((gl_FragCoord.y * 1.25) - (xrayTime * 22.0) + (xrayPhase * 9.0));
+        float scanlineMask = 1.0 - (0.12 * (0.5 + 0.5 * scanlineWave) * (0.3 + 0.7 * xraySyncPulse));
+        outgoingLight *= scanlineMask;
+        outgoingLight *= 0.28 + (0.95 * xrayLocalPulse);
+        outgoingLight += xrayRimColor * (xrayRim * xrayRimStrength * (0.35 + 1.9 * xraySyncPulse));
+        diffuseColor.a *= (0.84 + (0.16 * scanlineMask)) * (0.08 + (0.92 * xraySyncPulse));
+        #include <output_fragment>`,
+      )
+
+      material.userData.xrayShader = shader
+    }
+
+    material.customProgramCacheKey = () => 'atom-xray-rim'
+    material.userData.xrayShaderApplied = true
+    material.needsUpdate = true
+  }
+
+  const apply = (root) => {
+    forEachMaterial(root, (material) => {
+      captureOriginalMaterialState(material)
+      applyXrayShader(material)
+      xrayAnimatedMaterials.add(material)
+
+      if (material.color) material.color.lerp(new THREE.Color(0xf5fbff), 0.42)
+      if (material.emissive) material.emissive.set(0xbfefff)
+      if (material.emissiveIntensity !== undefined) material.emissiveIntensity = 0.2
+      if (material.metalness !== undefined) material.metalness = 0
+      if (material.roughness !== undefined) material.roughness = Math.min(Math.max(material.roughness, 0.45), 0.8)
+      material.transparent = true
+      material.opacity = 0.3
+      material.depthWrite = false
+      material.alphaHash = false
+      material.side = THREE.DoubleSide
+      material.needsUpdate = true
+    })
+  }
+
+  const restore = (root) => {
+    forEachMaterial(root, restoreOriginalMaterialState)
+  }
+
+  const update = (time) => {
+    for (const material of xrayAnimatedMaterials) {
+      const shader = material.userData.xrayShader
+      const phase = (material.id % 7) * 0.37
+      const scan = 0.72 + 0.28 * Math.sin((time * 18) + phase)
+      const breakup = Math.sin((time * 28) + phase) + (0.22 * Math.sin((time * 47) + (phase * 2.3)))
+      const visibleGate = THREE.MathUtils.smoothstep(breakup, -0.35, 0.9)
+      const flash = THREE.MathUtils.smoothstep(breakup, 1.28, 1.5)
+      const pulse = Math.max(visibleGate * (0.78 + 0.22 * scan), flash * 0.45)
+
+      if (shader) {
+        shader.uniforms.xrayTime.value = time
+        shader.uniforms.xrayPulse.value = pulse
+        shader.uniforms.xrayPhase.value = phase
+      }
+
+      material.opacity = 0.2 + (0.12 * pulse)
+      if (material.emissiveIntensity !== undefined) {
+        material.emissiveIntensity = 0.18 + (0.2 * pulse)
+      }
+    }
+  }
+
+  return { apply, restore, update }
+}
 function sampleGamma5(scale) {
   let sum = 0
 
@@ -1155,26 +1334,49 @@ function AtomCloud() {
   )
 }
 
-function AtomScene({ visualization }) {
+function AtomXrayController({ enabled, targetRef }) {
+  const controller = useMemo(() => createXrayMaterialController(), [])
+
+  useEffect(() => {
+    const target = targetRef.current
+    if (!target) return
+
+    if (enabled) {
+      controller.apply(target)
+      return () => controller.restore(target)
+    }
+
+    controller.restore(target)
+
+    return undefined
+  }, [controller, enabled, targetRef])
+
+  useFrame((state) => {
+    if (enabled) controller.update(state.clock.getElapsedTime())
+  })
+
+  return null
+}
+
+function AtomSceneEffects({ chromaticAberrationEnabled, xrayMode, targetRef }) {
+  const chromaticOffset = useMemo(
+    () => new THREE.Vector2(CHROMATIC_ABERRATION_OFFSET, CHROMATIC_ABERRATION_OFFSET),
+    [],
+  )
+
+  useFrame((state) => {
+    if (!chromaticAberrationEnabled) return
+
+    const oscillation = 0.75 + 0.25 * Math.sin(state.clock.getElapsedTime() * CHROMATIC_OSCILLATION_SPEED)
+    chromaticOffset.set(
+      CHROMATIC_ABERRATION_OFFSET * oscillation,
+      CHROMATIC_ABERRATION_OFFSET * oscillation,
+    )
+  })
+
   return (
     <>
-      <fog attach="fog" args={['#040913', 10, 20]} />
-      <ambientLight intensity={0.36} />
-      <hemisphereLight args={['#d2ecff', '#071018', 0.92]} />
-      <directionalLight position={[4, 4, 6]} intensity={1.35} color="#ffffff" />
-      <directionalLight position={[-4, -2, 3]} intensity={0.5} color="#4da3ff" />
-      <pointLight position={[0, 0, -5]} intensity={10} distance={18} color="#13304f" />
-      {visualization === 1 ? (
-        <Atom />
-      ) : visualization === 2 ? (
-        <OxygenMolecule />
-      ) : visualization === 5 ? (
-        <EpinephrineMolecule />
-      ) : visualization === 4 ? (
-        <CaffeineMolecule />
-      ) : (
-        <EthyleneMolecule />
-      )}
+      <AtomXrayController enabled={xrayMode} targetRef={targetRef} />
       <EffectComposer>
         <Bloom
           mipmapBlur
@@ -1183,13 +1385,119 @@ function AtomScene({ visualization }) {
           luminanceSmoothing={0.38}
           radius={0.72}
         />
+        {chromaticAberrationEnabled ? (
+          <ChromaticAberration
+            offset={chromaticOffset}
+            radialModulation
+            modulationOffset={0.15}
+          />
+        ) : null}
       </EffectComposer>
+    </>
+  )
+}
+
+function AtomScene({ chromaticAberrationEnabled, visualization, xrayMode }) {
+  const moleculeRef = useRef(null)
+
+  return (
+    <>
+      <fog attach="fog" args={['#040913', 10, 20]} />
+      <ambientLight intensity={0.36} />
+      <hemisphereLight args={['#d2ecff', '#071018', 0.92]} />
+      <directionalLight position={[4, 4, 6]} intensity={1.35} color="#ffffff" />
+      <directionalLight position={[-4, -2, 3]} intensity={0.5} color="#4da3ff" />
+      <pointLight position={[0, 0, -5]} intensity={10} distance={18} color="#13304f" />
+      <group ref={moleculeRef}>
+        {visualization === 1 ? (
+          <Atom />
+        ) : visualization === 2 ? (
+          <OxygenMolecule />
+        ) : visualization === 5 ? (
+          <EpinephrineMolecule />
+        ) : visualization === 4 ? (
+          <CaffeineMolecule />
+        ) : (
+          <EthyleneMolecule />
+        )}
+      </group>
+      <AtomSceneEffects
+        chromaticAberrationEnabled={chromaticAberrationEnabled}
+        targetRef={moleculeRef}
+        xrayMode={xrayMode}
+      />
     </>
   )
 }
 
 export default function App() {
   const [visualization, setVisualization] = useState(1)
+  const [chromaticAberrationEnabled, setChromaticAberrationEnabled] = useState(false)
+  const [xrayMode, setXrayMode] = useState(false)
+  const chromaticAberrationEnabledRef = useRef(false)
+  const xrayModeRef = useRef(false)
+  const restoreChromaticAfterXrayRef = useRef(false)
+
+  useEffect(() => {
+    chromaticAberrationEnabledRef.current = chromaticAberrationEnabled
+  }, [chromaticAberrationEnabled])
+
+  useEffect(() => {
+    xrayModeRef.current = xrayMode
+  }, [xrayMode])
+
+  useEffect(() => {
+    const toggleChromaticAberration = () => {
+      setChromaticAberrationEnabled((enabled) => {
+        const nextValue = !enabled
+        chromaticAberrationEnabledRef.current = nextValue
+        return nextValue
+      })
+    }
+
+    const toggleXrayMode = () => {
+      if (xrayModeRef.current) {
+        xrayModeRef.current = false
+        setXrayMode(false)
+
+        if (restoreChromaticAfterXrayRef.current) {
+          restoreChromaticAfterXrayRef.current = false
+          chromaticAberrationEnabledRef.current = true
+          setChromaticAberrationEnabled(true)
+        }
+
+        return
+      }
+
+      restoreChromaticAfterXrayRef.current = chromaticAberrationEnabledRef.current
+
+      if (chromaticAberrationEnabledRef.current) {
+        chromaticAberrationEnabledRef.current = false
+        setChromaticAberrationEnabled(false)
+      }
+
+      xrayModeRef.current = true
+      setXrayMode(true)
+    }
+
+    const onKeyDown = (event) => {
+      if (event.repeat || isEditableTarget(event.target)) return
+
+      if (event.key === 'c' || event.key === 'C') {
+        toggleChromaticAberration()
+        return
+      }
+
+      if (event.key === 'x' || event.key === 'X') {
+        toggleXrayMode()
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   const label =
     visualization === 3
       ? 'ethylene'
@@ -1203,7 +1511,11 @@ export default function App() {
     <main className="app-shell">
       <Canvas camera={{ position: [0, 0.2, 8.5], fov: 45 }} gl={{ antialias: true }}>
         <color attach="background" args={['#040913']} />
-        <AtomScene visualization={visualization} />
+        <AtomScene
+          chromaticAberrationEnabled={chromaticAberrationEnabled}
+          visualization={visualization}
+          xrayMode={xrayMode}
+        />
       </Canvas>
 
       {label ? <div className="visualization-label">{label}</div> : null}
