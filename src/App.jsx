@@ -105,6 +105,21 @@ export default function App() {
     const onKeyDown = (event) => {
       if (event.repeat || isEditableTarget(event.target)) return
 
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault()
+
+        setVisualization((current) => {
+          const currentIndex = VISUALIZATION_OPTIONS.findIndex(({ value }) => value === current)
+          if (currentIndex < 0) return DEFAULT_VISUALIZATION
+
+          const direction = event.key === 'ArrowRight' ? 1 : -1
+          const nextIndex = (currentIndex + direction + VISUALIZATION_OPTIONS.length) % VISUALIZATION_OPTIONS.length
+          return VISUALIZATION_OPTIONS[nextIndex].value
+        })
+
+        return
+      }
+
       if (handleSharedEffectHotkey(event)) return
     }
 
