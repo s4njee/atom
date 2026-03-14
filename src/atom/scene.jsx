@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Bloom, ChromaticAberration, EffectComposer } from '@react-three/postprocessing'
-import * as THREE from 'three'
 import {
   EFFECT_DEFAULTS,
   LIGHT_POSITIONS,
 } from './config'
 import { createXrayMaterialController } from './core'
+import SharedEffectStack from '../../../../src/shared/special-effects/SharedEffectStack.tsx'
+import {
+  SHARED_FX_CINEMATIC,
+  SHARED_FX_DATABEND,
+} from '../../../../src/shared/special-effects/shared-special-effects.ts'
 import {
   DEFAULT_VISUALIZATION,
   VISUALIZATION_COMPONENTS,
@@ -43,48 +46,37 @@ function AtomXrayController({ enabled, settings, targetRef }) {
 function AtomSceneEffects({
   chromaticAberrationEnabled,
   effectSettings,
+  specialEffects,
   targetRef,
   xrayMode,
   xraySettings,
 }) {
-  const chromaticOffset = useMemo(() => new THREE.Vector2(), [])
-
-  useEffect(() => {
-    chromaticOffset.set(effectSettings.chromaticOffset, effectSettings.chromaticOffset)
-  }, [chromaticOffset, effectSettings.chromaticOffset])
-
-  useFrame((state) => {
-    if (!chromaticAberrationEnabled) return
-
-    const oscillation = 0.75 + 0.25 * Math.sin(
-      state.clock.getElapsedTime() * effectSettings.chromaticOscillationSpeed,
-    )
-    const offset = effectSettings.chromaticOffset * oscillation
-
-    chromaticOffset.set(offset, offset)
-  })
-
   return (
     <>
       <AtomXrayController enabled={xrayMode} settings={xraySettings} targetRef={targetRef} />
-      <EffectComposer>
-        {effectSettings.bloomEnabled ? (
-          <Bloom
-            mipmapBlur
-            intensity={effectSettings.bloomIntensity}
-            luminanceThreshold={effectSettings.bloomThreshold}
-            luminanceSmoothing={effectSettings.bloomSmoothing}
-            radius={effectSettings.bloomRadius}
-          />
-        ) : null}
-        {chromaticAberrationEnabled ? (
-          <ChromaticAberration
-            offset={chromaticOffset}
-            radialModulation={effectSettings.chromaticRadialModulation}
-            modulationOffset={effectSettings.chromaticModulationOffset}
-          />
-        ) : null}
-      </EffectComposer>
+      <SharedEffectStack
+        barrelBlurAmount={0.12}
+        bloomEnabled={effectSettings.bloomEnabled}
+        bloomIntensity={effectSettings.bloomIntensity}
+        bloomRadius={effectSettings.bloomRadius}
+        bloomSmoothing={effectSettings.bloomSmoothing}
+        bloomThreshold={effectSettings.bloomThreshold}
+        chromaticAberrationEnabled={chromaticAberrationEnabled}
+        chromaticModulationOffset={effectSettings.chromaticModulationOffset}
+        chromaticOffset={effectSettings.chromaticOffset}
+        chromaticOscillationSpeed={effectSettings.chromaticOscillationSpeed}
+        chromaticRadialModulation={effectSettings.chromaticRadialModulation}
+        cinematicEnabled={specialEffects.currentFx === SHARED_FX_CINEMATIC}
+        databendEnabled={specialEffects.currentFx === SHARED_FX_DATABEND}
+        hue={specialEffects.hue}
+        hueCycleBaseHue={specialEffects.hueCycleBaseHue}
+        hueCycleEnabled={specialEffects.hueCycleEnabled}
+        hueCycleStartTime={specialEffects.hueCycleStartTime}
+        hueSatEnabled={specialEffects.hueSatEnabled}
+        pixelMosaicEnabled={specialEffects.pixelMosaicEnabled}
+        saturation={specialEffects.saturation}
+        thermalVisionEnabled={specialEffects.thermalVisionEnabled}
+      />
     </>
   )
 }
@@ -93,6 +85,7 @@ function AtomScene({
   chromaticAberrationEnabled,
   effectSettings = EFFECT_DEFAULTS,
   sceneSettings,
+  specialEffects,
   visualization,
   xrayMode,
   xraySettings,
@@ -134,6 +127,7 @@ function AtomScene({
       <AtomSceneEffects
         chromaticAberrationEnabled={chromaticAberrationEnabled}
         effectSettings={effectSettings}
+        specialEffects={specialEffects}
         targetRef={moleculeRef}
         xrayMode={xrayMode}
         xraySettings={xraySettings}

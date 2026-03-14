@@ -1,7 +1,6 @@
 import { Canvas } from '@react-three/fiber'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  APP_HOTKEYS,
   CAMERA_DEFAULTS,
   EFFECT_DEFAULTS,
   SCENE_DEFAULTS,
@@ -11,6 +10,16 @@ import { isEditableTarget } from './atom/core'
 import { AtomGuiControls } from './atom/gui'
 import { AtomScene } from './atom/scene'
 import {
+  createSharedEffectHotkeyListener,
+  setChromaticAberrationState,
+  setXrayModeState,
+  SHARED_FX_CINEMATIC,
+  SHARED_FX_DATABEND,
+  SHARED_FX_NONE,
+  toggleHueCycleState,
+  toggleSharedFxMode,
+} from '../../../src/shared/special-effects/shared-special-effects.ts'
+import {
   DEFAULT_VISUALIZATION,
   VISUALIZATION_LABELS,
   VISUALIZATION_OPTIONS,
@@ -18,113 +27,109 @@ import {
 
 export default function App() {
   const [visualization, setVisualization] = useState(DEFAULT_VISUALIZATION)
-  const [chromaticAberrationEnabled, setChromaticAberrationEnabled] = useState(false)
-  const [xrayMode, setXrayMode] = useState(false)
   const [sceneSettings, setSceneSettings] = useState(SCENE_DEFAULTS)
   const [effectSettings, setEffectSettings] = useState(EFFECT_DEFAULTS)
   const [xraySettings, setXraySettings] = useState(XRAY_DEFAULTS)
-  const chromaticAberrationEnabledRef = useRef(false)
-  const xrayModeRef = useRef(false)
-  const restoreChromaticAfterXrayRef = useRef(false)
+  const [specialEffects, setSpecialEffects] = useState({
+    chromaticAberrationEnabled: false,
+    currentFx: SHARED_FX_NONE,
+    hue: 0,
+    hueCycleBaseHue: 0,
+    hueCycleEnabled: false,
+    hueCycleSavedEnabled: false,
+    hueCycleSavedHue: 0,
+    hueCycleSavedSaturation: 0,
+    hueCycleStartTime: 0,
+    hueSatEnabled: false,
+    pixelMosaicEnabled: false,
+    restoreChromaticAfterXray: false,
+    saturation: 0,
+    thermalVisionEnabled: false,
+    xrayMode: false,
+  })
+
+  const updateChromaticAberration = (enabled) => {
+    setSpecialEffects((current) => ({
+      ...current,
+      ...setChromaticAberrationState(current, enabled),
+    }))
+  }
+
+  const updateXrayMode = (enabled) => {
+    setSpecialEffects((current) => ({
+      ...current,
+      ...setXrayModeState(current, enabled),
+    }))
+  }
 
   useEffect(() => {
-    chromaticAberrationEnabledRef.current = chromaticAberrationEnabled
-  }, [chromaticAberrationEnabled])
+    const handleSharedEffectHotkey = createSharedEffectHotkeyListener({
+      cinematic: () => {
+        setSpecialEffects((current) => ({
+          ...current,
+          currentFx: toggleSharedFxMode(current.currentFx, SHARED_FX_CINEMATIC),
+        }))
+      },
+      chromaticAberration: () => {
+        updateChromaticAberration(!specialEffects.chromaticAberrationEnabled)
+      },
+      databend: () => {
+        setSpecialEffects((current) => ({
+          ...current,
+          currentFx: toggleSharedFxMode(current.currentFx, SHARED_FX_DATABEND),
+        }))
+      },
+      hueCycle: () => {
+        setSpecialEffects((current) => ({
+          ...current,
+          ...toggleHueCycleState(current, performance.now() / 1000),
+        }))
+      },
+      pixelMosaic: () => {
+        setSpecialEffects((current) => ({
+          ...current,
+          pixelMosaicEnabled: !current.pixelMosaicEnabled,
+        }))
+      },
+      thermalVision: () => {
+        setSpecialEffects((current) => ({
+          ...current,
+          thermalVisionEnabled: !current.thermalVisionEnabled,
+        }))
+      },
+      xrayMode: () => {
+        updateXrayMode(!specialEffects.xrayMode)
+      },
+    })
 
-  useEffect(() => {
-    xrayModeRef.current = xrayMode
-  }, [xrayMode])
-
-  const setChromaticAberrationValue = useCallback((enabled) => {
-    chromaticAberrationEnabledRef.current = enabled
-    setChromaticAberrationEnabled(enabled)
-  }, [])
-
-  const setXrayModeValue = useCallback((enabled) => {
-    xrayModeRef.current = enabled
-    setXrayMode(enabled)
-  }, [])
-
-  const updateChromaticAberration = useCallback((enabled) => {
-    if (enabled && xrayModeRef.current) {
-      restoreChromaticAfterXrayRef.current = false
-      setXrayModeValue(false)
-    }
-
-    setChromaticAberrationValue(enabled)
-  }, [setChromaticAberrationValue, setXrayModeValue])
-
-  const updateXrayMode = useCallback((enabled) => {
-    if (!enabled) {
-      if (!xrayModeRef.current) return
-
-      setXrayModeValue(false)
-
-      if (restoreChromaticAfterXrayRef.current) {
-        restoreChromaticAfterXrayRef.current = false
-        setChromaticAberrationValue(true)
-      }
-
-      return
-    }
-
-    if (xrayModeRef.current) return
-
-    restoreChromaticAfterXrayRef.current = chromaticAberrationEnabledRef.current
-
-    if (chromaticAberrationEnabledRef.current) {
-      setChromaticAberrationValue(false)
-    }
-
-    setXrayModeValue(true)
-  }, [setChromaticAberrationValue, setXrayModeValue])
-
-  const toggleChromaticAberration = useCallback(() => {
-    updateChromaticAberration(!chromaticAberrationEnabledRef.current)
-  }, [updateChromaticAberration])
-
-  const toggleXrayMode = useCallback(() => {
-    updateXrayMode(!xrayModeRef.current)
-  }, [updateXrayMode])
-
-  useEffect(() => {
     const onKeyDown = (event) => {
       if (event.repeat || isEditableTarget(event.target)) return
 
-      if (
-        event.key === APP_HOTKEYS.chromaticAberration ||
-        event.key === APP_HOTKEYS.chromaticAberration.toUpperCase()
-      ) {
-        toggleChromaticAberration()
-        return
-      }
-
-      if (event.key === APP_HOTKEYS.xrayMode || event.key === APP_HOTKEYS.xrayMode.toUpperCase()) {
-        toggleXrayMode()
-      }
+      if (handleSharedEffectHotkey(event)) return
     }
 
     window.addEventListener('keydown', onKeyDown)
 
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [toggleChromaticAberration, toggleXrayMode])
+  }, [specialEffects.chromaticAberrationEnabled, specialEffects.xrayMode])
   const label = VISUALIZATION_LABELS[visualization] ?? ''
 
   return (
     <main className="app-shell">
       <Canvas camera={CAMERA_DEFAULTS} gl={{ antialias: true }}>
         <AtomScene
-          chromaticAberrationEnabled={chromaticAberrationEnabled}
+          chromaticAberrationEnabled={specialEffects.chromaticAberrationEnabled}
           effectSettings={effectSettings}
           sceneSettings={sceneSettings}
+          specialEffects={specialEffects}
           visualization={visualization}
-          xrayMode={xrayMode}
+          xrayMode={specialEffects.xrayMode}
           xraySettings={xraySettings}
         />
       </Canvas>
 
       <AtomGuiControls
-        chromaticAberrationEnabled={chromaticAberrationEnabled}
+        chromaticAberrationEnabled={specialEffects.chromaticAberrationEnabled}
         effectSettings={effectSettings}
         sceneSettings={sceneSettings}
         setEffectSettings={setEffectSettings}
@@ -134,7 +139,7 @@ export default function App() {
         updateChromaticAberration={updateChromaticAberration}
         updateXrayMode={updateXrayMode}
         visualization={visualization}
-        xrayMode={xrayMode}
+        xrayMode={specialEffects.xrayMode}
         xraySettings={xraySettings}
       />
 
