@@ -2,6 +2,7 @@ import { Line } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useRef } from 'react'
 import * as THREE from 'three'
+import { XRAY_DEFAULTS } from './config'
 
 const ORBITAL_SCALE = 0.82
 const ATOM_SCALES = {
@@ -40,12 +41,15 @@ const ELECTRON_TEXTURE = (() => {
   texture.needsUpdate = true
   return texture
 })()
-const CHROMATIC_ABERRATION_OFFSET = 0.004
-const CHROMATIC_OSCILLATION_SPEED = 3.2
-const XRAY_RIM_STRENGTH = 1.35
-const XRAY_RIM_POWER = 2.4
-const XRAY_RIM_COLOR = new THREE.Color(0xe8fbff)
 const LOCAL_BOND_AXIS = new THREE.Vector3(1, 0, 0)
+
+function normalizeXrayConfig(config = {}) {
+  return {
+    rimColor: config.rimColor ?? XRAY_DEFAULTS.rimColor,
+    rimStrength: config.rimStrength ?? XRAY_DEFAULTS.rimStrength,
+    rimPower: config.rimPower ?? XRAY_DEFAULTS.rimPower,
+  }
+}
 
 function isEditableTarget(target) {
   return target instanceof HTMLElement && (
@@ -56,7 +60,8 @@ function isEditableTarget(target) {
   )
 }
 
-function createXrayMaterialController() {
+function createXrayMaterialController(initialConfig) {
+  let config = normalizeXrayConfig(initialConfig)
   const originalMaterialState = new WeakMap()
   const xrayAnimatedMaterials = new Set()
 
@@ -111,6 +116,15 @@ function createXrayMaterialController() {
     material.needsUpdate = true
   }
 
+  const syncShaderUniforms = (material) => {
+    const shader = material.userData.xrayShader
+    if (!shader) return
+
+    shader.uniforms.xrayRimColor.value.set(config.rimColor)
+    shader.uniforms.xrayRimStrength.value = config.rimStrength
+    shader.uniforms.xrayRimPower.value = config.rimPower
+  }
+
   const applyXrayShader = (material) => {
     if (
       !material.isMeshStandardMaterial &&
@@ -124,9 +138,9 @@ function createXrayMaterialController() {
     if (!('onBeforeCompile' in material) || material.userData.xrayShaderApplied) return
 
     material.onBeforeCompile = (shader) => {
-      shader.uniforms.xrayRimColor = { value: XRAY_RIM_COLOR.clone() }
-      shader.uniforms.xrayRimStrength = { value: XRAY_RIM_STRENGTH }
-      shader.uniforms.xrayRimPower = { value: XRAY_RIM_POWER }
+      shader.uniforms.xrayRimColor = { value: new THREE.Color(config.rimColor) }
+      shader.uniforms.xrayRimStrength = { value: config.rimStrength }
+      shader.uniforms.xrayRimPower = { value: config.rimPower }
       shader.uniforms.xrayTime = { value: 0 }
       shader.uniforms.xrayPulse = { value: 0 }
       shader.uniforms.xrayPhase = { value: 0 }
@@ -164,6 +178,7 @@ function createXrayMaterialController() {
       )
 
       material.userData.xrayShader = shader
+      syncShaderUniforms(material)
     }
 
     material.customProgramCacheKey = () => 'atom-xray-rim'
@@ -176,6 +191,7 @@ function createXrayMaterialController() {
       captureOriginalMaterialState(material)
       applyXrayShader(material)
       xrayAnimatedMaterials.add(material)
+      syncShaderUniforms(material)
 
       if (material.color) material.color.lerp(new THREE.Color(0xf5fbff), 0.42)
       if (material.emissive) material.emissive.set(0xbfefff)
@@ -206,6 +222,7 @@ function createXrayMaterialController() {
       const pulse = Math.max(visibleGate * (0.78 + 0.22 * scan), flash * 0.45)
 
       if (shader) {
+        syncShaderUniforms(material)
         shader.uniforms.xrayTime.value = time
         shader.uniforms.xrayPulse.value = pulse
         shader.uniforms.xrayPhase.value = phase
@@ -218,7 +235,15 @@ function createXrayMaterialController() {
     }
   }
 
-  return { apply, restore, update }
+  const setConfig = (nextConfig) => {
+    config = normalizeXrayConfig(nextConfig)
+
+    for (const material of xrayAnimatedMaterials) {
+      syncShaderUniforms(material)
+    }
+  }
+
+  return { apply, restore, setConfig, update }
 }
 
 function createBuckminsterfullereneData() {
@@ -1127,8 +1152,6 @@ function DoubleBond({
 export {
   ATOM_SCALES,
   BUCKMINSTERFULLERENE,
-  CHROMATIC_ABERRATION_OFFSET,
-  CHROMATIC_OSCILLATION_SPEED,
   ElectronPair,
   Nucleus,
   SigmaBondCloud,

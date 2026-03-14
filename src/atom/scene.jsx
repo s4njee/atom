@@ -3,41 +3,21 @@ import { useFrame } from '@react-three/fiber'
 import { Bloom, ChromaticAberration, EffectComposer } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import {
-  CHROMATIC_ABERRATION_OFFSET,
-  CHROMATIC_OSCILLATION_SPEED,
-  createXrayMaterialController,
-} from './core'
+  EFFECT_DEFAULTS,
+  LIGHT_POSITIONS,
+} from './config'
+import { createXrayMaterialController } from './core'
 import {
-  Atom,
-  OxygenMolecule,
-  EthyleneMolecule,
-  CaffeineMolecule,
-  EpinephrineMolecule,
-  CapsaicinMolecule,
-  MirtazapineMolecule,
-  QuetiapineMolecule,
-  LSDMolecule,
-  AtropineMolecule,
-  EmpagliflozinMolecule,
-  BuckminsterfullereneMolecule,
-} from './molecules'
+  DEFAULT_VISUALIZATION,
+  VISUALIZATION_COMPONENTS,
+} from './visualizations'
 
-const VISUALIZATION_COMPONENTS = {
-  1: Atom,
-  2: OxygenMolecule,
-  4: CaffeineMolecule,
-  5: EpinephrineMolecule,
-  6: BuckminsterfullereneMolecule,
-  7: CapsaicinMolecule,
-  8: MirtazapineMolecule,
-  9: QuetiapineMolecule,
-  10: LSDMolecule,
-  11: AtropineMolecule,
-  12: EmpagliflozinMolecule,
-}
+function AtomXrayController({ enabled, settings, targetRef }) {
+  const controller = useMemo(() => createXrayMaterialController(settings), [])
 
-function AtomXrayController({ enabled, targetRef }) {
-  const controller = useMemo(() => createXrayMaterialController(), [])
+  useEffect(() => {
+    controller.setConfig(settings)
+  }, [controller, settings])
 
   useEffect(() => {
     const target = targetRef.current
@@ -60,38 +40,48 @@ function AtomXrayController({ enabled, targetRef }) {
   return null
 }
 
-function AtomSceneEffects({ chromaticAberrationEnabled, targetRef, xrayMode }) {
-  const chromaticOffset = useMemo(
-    () => new THREE.Vector2(CHROMATIC_ABERRATION_OFFSET, CHROMATIC_ABERRATION_OFFSET),
-    [],
-  )
+function AtomSceneEffects({
+  chromaticAberrationEnabled,
+  effectSettings,
+  targetRef,
+  xrayMode,
+  xraySettings,
+}) {
+  const chromaticOffset = useMemo(() => new THREE.Vector2(), [])
+
+  useEffect(() => {
+    chromaticOffset.set(effectSettings.chromaticOffset, effectSettings.chromaticOffset)
+  }, [chromaticOffset, effectSettings.chromaticOffset])
 
   useFrame((state) => {
     if (!chromaticAberrationEnabled) return
 
-    const oscillation = 0.75 + 0.25 * Math.sin(state.clock.getElapsedTime() * CHROMATIC_OSCILLATION_SPEED)
-    chromaticOffset.set(
-      CHROMATIC_ABERRATION_OFFSET * oscillation,
-      CHROMATIC_ABERRATION_OFFSET * oscillation,
+    const oscillation = 0.75 + 0.25 * Math.sin(
+      state.clock.getElapsedTime() * effectSettings.chromaticOscillationSpeed,
     )
+    const offset = effectSettings.chromaticOffset * oscillation
+
+    chromaticOffset.set(offset, offset)
   })
 
   return (
     <>
-      <AtomXrayController enabled={xrayMode} targetRef={targetRef} />
+      <AtomXrayController enabled={xrayMode} settings={xraySettings} targetRef={targetRef} />
       <EffectComposer>
-        <Bloom
-          mipmapBlur
-          intensity={0.72}
-          luminanceThreshold={0.2}
-          luminanceSmoothing={0.26}
-          radius={0.46}
-        />
+        {effectSettings.bloomEnabled ? (
+          <Bloom
+            mipmapBlur
+            intensity={effectSettings.bloomIntensity}
+            luminanceThreshold={effectSettings.bloomThreshold}
+            luminanceSmoothing={effectSettings.bloomSmoothing}
+            radius={effectSettings.bloomRadius}
+          />
+        ) : null}
         {chromaticAberrationEnabled ? (
           <ChromaticAberration
             offset={chromaticOffset}
-            radialModulation
-            modulationOffset={0.15}
+            radialModulation={effectSettings.chromaticRadialModulation}
+            modulationOffset={effectSettings.chromaticModulationOffset}
           />
         ) : null}
       </EffectComposer>
@@ -99,25 +89,54 @@ function AtomSceneEffects({ chromaticAberrationEnabled, targetRef, xrayMode }) {
   )
 }
 
-function AtomScene({ chromaticAberrationEnabled, visualization, xrayMode }) {
+function AtomScene({
+  chromaticAberrationEnabled,
+  effectSettings = EFFECT_DEFAULTS,
+  sceneSettings,
+  visualization,
+  xrayMode,
+  xraySettings,
+}) {
   const moleculeRef = useRef(null)
-  const ActiveVisualization = VISUALIZATION_COMPONENTS[visualization] ?? EthyleneMolecule
+  const ActiveVisualization = VISUALIZATION_COMPONENTS[visualization] ?? VISUALIZATION_COMPONENTS[DEFAULT_VISUALIZATION]
 
   return (
     <>
-      <fog attach="fog" args={['#040913', 10, 20]} />
-      <ambientLight intensity={0.36} />
-      <hemisphereLight args={['#d2ecff', '#071018', 0.92]} />
-      <directionalLight position={[4, 4, 6]} intensity={1.35} color="#ffffff" />
-      <directionalLight position={[-4, -2, 3]} intensity={0.5} color="#4da3ff" />
-      <pointLight position={[0, 0, -5]} intensity={10} distance={18} color="#13304f" />
+      <color attach="background" args={[sceneSettings.backgroundColor]} />
+      <fog attach="fog" args={[sceneSettings.fogColor, sceneSettings.fogNear, sceneSettings.fogFar]} />
+      <ambientLight intensity={sceneSettings.ambientIntensity} />
+      <hemisphereLight
+        args={[
+          sceneSettings.hemisphereSkyColor,
+          sceneSettings.hemisphereGroundColor,
+          sceneSettings.hemisphereIntensity,
+        ]}
+      />
+      <directionalLight
+        position={LIGHT_POSITIONS.key}
+        intensity={sceneSettings.keyLightIntensity}
+        color={sceneSettings.keyLightColor}
+      />
+      <directionalLight
+        position={LIGHT_POSITIONS.fill}
+        intensity={sceneSettings.fillLightIntensity}
+        color={sceneSettings.fillLightColor}
+      />
+      <pointLight
+        position={LIGHT_POSITIONS.back}
+        intensity={sceneSettings.backLightIntensity}
+        distance={sceneSettings.backLightDistance}
+        color={sceneSettings.backLightColor}
+      />
       <group ref={moleculeRef}>
         <ActiveVisualization />
       </group>
       <AtomSceneEffects
         chromaticAberrationEnabled={chromaticAberrationEnabled}
+        effectSettings={effectSettings}
         targetRef={moleculeRef}
         xrayMode={xrayMode}
+        xraySettings={xraySettings}
       />
     </>
   )
