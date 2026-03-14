@@ -7,6 +7,7 @@ import {
   SingleBond,
   StructuralBond,
 } from '../core'
+import { ATOM_RENDER_STYLES, createAtomPositionLookup } from './helpers'
 
 export function EpinephrineMolecule() {
   const moleculeRef = useRef(null)
@@ -27,15 +28,9 @@ export function EpinephrineMolecule() {
     { key: 'n1', element: 'N', scale: ATOM_SCALES.N, position: [4.26 * scale, -0.06 * scale, 0.92 * scale] },
     { key: 'c9', element: 'C', scale: ATOM_SCALES.C, position: [5.34 * scale, -0.58 * scale, 1.58 * scale] },
   ]
-  const atoms = Object.fromEntries(atomDefs.map(({ key, position }) => [key, position]))
+  const atoms = createAtomPositionLookup(atomDefs)
   const ringKeys = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6']
   const ringPoints = ringKeys.map((key) => atoms[key])
-
-  const atomStyle = {
-    C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
-    N: { color: '#c06aa6', emissive: '#7c3d67', emissiveIntensity: 1.4 },
-    O: { color: '#b44646', emissive: '#7a1f1f', emissiveIntensity: 1.25 },
-  }
 
   const bondDefs = [
     ['c1', 'c2'],
@@ -75,9 +70,9 @@ export function EpinephrineMolecule() {
           key={key}
           position={atoms[key]}
           scale={scale}
-          color={atomStyle[element].color}
-          emissive={atomStyle[element].emissive}
-          emissiveIntensity={atomStyle[element].emissiveIntensity}
+          color={ATOM_RENDER_STYLES[element].color}
+          emissive={ATOM_RENDER_STYLES[element].emissive}
+          emissiveIntensity={ATOM_RENDER_STYLES[element].emissiveIntensity}
         />
       ))}
 

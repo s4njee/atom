@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { ATOM_SCALES, Nucleus, SingleBond } from '../core'
+import { ATOM_RENDER_STYLES, createAtomPositionLookup } from './helpers'
 
 export function GlucoseMolecule() {
   const moleculeRef = useRef(null)
@@ -20,12 +21,7 @@ export function GlucoseMolecule() {
     { key: 'o4', element: 'O', scale: ATOM_SCALES.O, position: [-0.4 * scale, -2.32 * scale, -0.86 * scale] },
     { key: 'o6', element: 'O', scale: ATOM_SCALES.O, position: [-3.1 * scale, -0.34 * scale, 1.78 * scale] },
   ]
-  const atoms = Object.fromEntries(atomDefs.map(({ key, position }) => [key, position]))
-
-  const atomStyle = {
-    C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
-    O: { color: '#b44646', emissive: '#7a1f1f', emissiveIntensity: 1.25 },
-  }
+  const atoms = createAtomPositionLookup(atomDefs)
 
   const bondDefs = [
     ['o5', 'c1'],
@@ -58,9 +54,9 @@ export function GlucoseMolecule() {
           key={key}
           position={atoms[key]}
           scale={scale}
-          color={atomStyle[element].color}
-          emissive={atomStyle[element].emissive}
-          emissiveIntensity={atomStyle[element].emissiveIntensity}
+          color={ATOM_RENDER_STYLES[element].color}
+          emissive={ATOM_RENDER_STYLES[element].emissive}
+          emissiveIntensity={ATOM_RENDER_STYLES[element].emissiveIntensity}
         />
       ))}
 

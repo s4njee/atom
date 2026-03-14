@@ -7,6 +7,7 @@ import {
   SingleBond,
   StructuralBond,
 } from '../core'
+import { ATOM_RENDER_STYLES, createAtomPositionLookup } from './helpers'
 
 export function QuetiapineMolecule() {
   const moleculeRef = useRef(null)
@@ -41,18 +42,11 @@ export function QuetiapineMolecule() {
     { key: 'c26', element: 'C', scale: ATOM_SCALES.C, position: [2.883 * scale, -3.8659 * scale, 0] },
     { key: 'c27', element: 'C', scale: ATOM_SCALES.C, position: [2.6512 * scale, -4.8814 * scale, 0] },
   ]
-  const atoms = Object.fromEntries(atomDefs.map(({ key, position }) => [key, position]))
+  const atoms = createAtomPositionLookup(atomDefs)
   const leftRingKeys = ['c14', 'c15', 'c19', 'c22', 'c21', 'c16']
   const rightRingKeys = ['c17', 'c18', 'c24', 'c27', 'c26', 'c23']
   const leftRingPoints = leftRingKeys.map((key) => atoms[key])
   const rightRingPoints = rightRingKeys.map((key) => atoms[key])
-
-  const atomStyle = {
-    C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
-    N: { color: '#c06aa6', emissive: '#7c3d67', emissiveIntensity: 1.4 },
-    O: { color: '#b44646', emissive: '#7a1f1f', emissiveIntensity: 1.25 },
-    S: { color: '#c8a24f', emissive: '#7e5f1d', emissiveIntensity: 1.3 },
-  }
 
   const bondDefs = [
     ['s1', 'c15'],
@@ -112,9 +106,9 @@ export function QuetiapineMolecule() {
           key={key}
           position={atoms[key]}
           scale={scale}
-          color={atomStyle[element].color}
-          emissive={atomStyle[element].emissive}
-          emissiveIntensity={atomStyle[element].emissiveIntensity}
+          color={ATOM_RENDER_STYLES[element].color}
+          emissive={ATOM_RENDER_STYLES[element].emissive}
+          emissiveIntensity={ATOM_RENDER_STYLES[element].emissiveIntensity}
         />
       ))}
 

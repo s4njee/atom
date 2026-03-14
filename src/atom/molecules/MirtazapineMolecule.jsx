@@ -7,6 +7,7 @@ import {
   SingleBond,
   StructuralBond,
 } from '../core'
+import { ATOM_RENDER_STYLES, createAtomPositionLookup } from './helpers'
 
 export function MirtazapineMolecule() {
   const moleculeRef = useRef(null)
@@ -34,16 +35,11 @@ export function MirtazapineMolecule() {
     { key: 'c19', element: 'C', scale: ATOM_SCALES.C, position: [2.7134 * scale, 0.2334 * scale, 0] },
     { key: 'c20', element: 'C', scale: ATOM_SCALES.C, position: [2.4816 * scale, -0.7821 * scale, 0] },
   ]
-  const atoms = Object.fromEntries(atomDefs.map(({ key, position }) => [key, position]))
+  const atoms = createAtomPositionLookup(atomDefs)
   const leftRingKeys = ['c8', 'c10', 'c15', 'c18', 'c17', 'c14']
   const rightRingKeys = ['c9', 'c12', 'c16', 'c19', 'c20', 'n3']
   const leftRingPoints = leftRingKeys.map((key) => atoms[key])
   const rightRingPoints = rightRingKeys.map((key) => atoms[key])
-
-  const atomStyle = {
-    C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
-    N: { color: '#c06aa6', emissive: '#7c3d67', emissiveIntensity: 1.4 },
-  }
 
   const bondDefs = [
     ['n1', 'c4'],
@@ -96,9 +92,9 @@ export function MirtazapineMolecule() {
           key={key}
           position={atoms[key]}
           scale={scale}
-          color={atomStyle[element].color}
-          emissive={atomStyle[element].emissive}
-          emissiveIntensity={atomStyle[element].emissiveIntensity}
+          color={ATOM_RENDER_STYLES[element].color}
+          emissive={ATOM_RENDER_STYLES[element].emissive}
+          emissiveIntensity={ATOM_RENDER_STYLES[element].emissiveIntensity}
         />
       ))}
 

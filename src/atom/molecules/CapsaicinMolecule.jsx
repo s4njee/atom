@@ -8,6 +8,7 @@ import {
   SingleBond,
   StructuralBond,
 } from '../core'
+import { ATOM_RENDER_STYLES, createAtomPositionLookup } from './helpers'
 
 export function CapsaicinMolecule() {
   const moleculeRef = useRef(null)
@@ -34,16 +35,10 @@ export function CapsaicinMolecule() {
     { key: 'c14', element: 'C', scale: ATOM_SCALES.C, position: [10.12 * scale, -1.76 * scale, 2.72 * scale] },
     { key: 'c15', element: 'C', scale: ATOM_SCALES.C, position: [11.28 * scale, -1.42 * scale, 2.96 * scale] },
   ]
-  const atoms = Object.fromEntries(atomDefs.map(({ key, position }) => [key, position]))
+  const atoms = createAtomPositionLookup(atomDefs)
   const ringKeys = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6']
   const ringPoints = ringKeys.map((key) => atoms[key])
   const doubleBondKeys = new Set(['c9-o9', 'c11-c12'])
-
-  const atomStyle = {
-    C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
-    N: { color: '#c06aa6', emissive: '#7c3d67', emissiveIntensity: 1.4 },
-    O: { color: '#b44646', emissive: '#7a1f1f', emissiveIntensity: 1.25 },
-  }
 
   const bondDefs = [
     ['c1', 'c2'],
@@ -89,9 +84,9 @@ export function CapsaicinMolecule() {
           key={key}
           position={atoms[key]}
           scale={scale}
-          color={atomStyle[element].color}
-          emissive={atomStyle[element].emissive}
-          emissiveIntensity={atomStyle[element].emissiveIntensity}
+          color={ATOM_RENDER_STYLES[element].color}
+          emissive={ATOM_RENDER_STYLES[element].emissive}
+          emissiveIntensity={ATOM_RENDER_STYLES[element].emissiveIntensity}
         />
       ))}
 

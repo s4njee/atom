@@ -8,6 +8,7 @@ import {
   SingleBond,
   StructuralBond,
 } from '../core'
+import { ATOM_RENDER_STYLES, createAtomPositionLookup } from './helpers'
 
 export function LSDMolecule() {
   const moleculeRef = useRef(null)
@@ -39,18 +40,12 @@ export function LSDMolecule() {
     { key: 'c23', element: 'C', scale: ATOM_SCALES.C, position: [-2.5058 * scale, 3.8021 * scale, 0] },
     { key: 'c24', element: 'C', scale: ATOM_SCALES.C, position: [-0.7738 * scale, 3.8089 * scale, 0] },
   ]
-  const atoms = Object.fromEntries(atomDefs.map(({ key, position }) => [key, position]))
+  const atoms = createAtomPositionLookup(atomDefs)
   const benzeneRingKeys = ['c11', 'c12', 'c14', 'c19', 'c20', 'c18']
   const indoleRingKeys = ['c10', 'c12', 'c14', 'n2', 'c17']
   const benzeneRingPoints = benzeneRingKeys.map((key) => atoms[key])
   const indoleRingPoints = indoleRingKeys.map((key) => atoms[key])
   const doubleBondKeys = new Set(['o1-c16'])
-
-  const atomStyle = {
-    C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
-    N: { color: '#c06aa6', emissive: '#7c3d67', emissiveIntensity: 1.4 },
-    O: { color: '#b44646', emissive: '#7a1f1f', emissiveIntensity: 1.25 },
-  }
 
   const bondDefs = [
     ['o1', 'c16'],
@@ -107,9 +102,9 @@ export function LSDMolecule() {
           key={key}
           position={atoms[key]}
           scale={scale}
-          color={atomStyle[element].color}
-          emissive={atomStyle[element].emissive}
-          emissiveIntensity={atomStyle[element].emissiveIntensity}
+          color={ATOM_RENDER_STYLES[element].color}
+          emissive={ATOM_RENDER_STYLES[element].emissive}
+          emissiveIntensity={ATOM_RENDER_STYLES[element].emissiveIntensity}
         />
       ))}
 

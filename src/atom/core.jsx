@@ -2,6 +2,7 @@ import { Line } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useRef } from 'react'
 import * as THREE from 'three'
+import { isEditableTarget } from '../../../../src/shared/special-effects/index.ts'
 import { XRAY_DEFAULTS } from './config'
 
 const ORBITAL_SCALE = 0.82
@@ -49,15 +50,6 @@ function normalizeXrayConfig(config = {}) {
     rimStrength: config.rimStrength ?? XRAY_DEFAULTS.rimStrength,
     rimPower: config.rimPower ?? XRAY_DEFAULTS.rimPower,
   }
-}
-
-function isEditableTarget(target) {
-  return target instanceof HTMLElement && (
-    target.isContentEditable ||
-    target.tagName === 'INPUT' ||
-    target.tagName === 'TEXTAREA' ||
-    target.tagName === 'SELECT'
-  )
 }
 
 function createXrayMaterialController(initialConfig) {

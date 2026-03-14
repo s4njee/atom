@@ -7,6 +7,7 @@ import {
   SingleBond,
   StructuralBond,
 } from '../core'
+import { ATOM_RENDER_STYLES, createAtomPositionLookup } from './helpers'
 
 export function EmpagliflozinMolecule() {
   const moleculeRef = useRef(null)
@@ -45,17 +46,11 @@ export function EmpagliflozinMolecule() {
     { key: 'a30', element: 'C', scale: ATOM_SCALES.C, position: [-3.9737 * scale, 1.3178 * scale, -0.5057 * scale] },
     { key: 'a31', element: 'C', scale: ATOM_SCALES.C, position: [-2.8968 * scale, -0.6057 * scale, -1.4942 * scale] },
   ]
-  const atoms = Object.fromEntries(atomDefs.map(({ key, position }) => [key, position]))
+  const atoms = createAtomPositionLookup(atomDefs)
   const leftRingKeys = ['a14', 'a16', 'a18', 'a22', 'a21', 'a17']
   const rightRingKeys = ['a26', 'a28', 'a30', 'a27', 'a31', 'a29']
   const leftRingPoints = leftRingKeys.map((key) => atoms[key])
   const rightRingPoints = rightRingKeys.map((key) => atoms[key])
-
-  const atomStyle = {
-    C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
-    Cl: { color: '#74c46e', emissive: '#356f2f', emissiveIntensity: 1.35 },
-    O: { color: '#b44646', emissive: '#7a1f1f', emissiveIntensity: 1.25 },
-  }
 
   const bondDefs = [
     ['a1', 'a22'],
@@ -119,9 +114,9 @@ export function EmpagliflozinMolecule() {
           key={key}
           position={atoms[key]}
           scale={scale}
-          color={atomStyle[element].color}
-          emissive={atomStyle[element].emissive}
-          emissiveIntensity={atomStyle[element].emissiveIntensity}
+          color={ATOM_RENDER_STYLES[element].color}
+          emissive={ATOM_RENDER_STYLES[element].emissive}
+          emissiveIntensity={ATOM_RENDER_STYLES[element].emissiveIntensity}
         />
       ))}
 

@@ -6,21 +6,19 @@ import {
   SCENE_DEFAULTS,
   XRAY_DEFAULTS,
 } from './atom/config'
-import { isEditableTarget } from './atom/core'
 import { AtomGuiControls } from './atom/gui'
 import { AtomScene } from './atom/scene'
 import {
+  createInitialSharedSpecialEffectState,
   createSharedEffectHotkeyListener,
-  setChromaticAberrationState,
-  setXrayModeState,
-  SHARED_FX_CINEMATIC,
-  SHARED_FX_DATABEND,
-  SHARED_FX_NONE,
-  toggleHueCycleState,
-  toggleSharedFxMode,
+  createSharedSpecialEffectHandlers,
+  isEditableTarget,
+  setSharedChromaticAberrationEnabled,
+  setSharedXrayModeEnabled,
 } from '../../../src/shared/special-effects/index.ts'
 import {
   DEFAULT_VISUALIZATION,
+  getNextVisualization,
   VISUALIZATION_LABELS,
   VISUALIZATION_OPTIONS,
 } from './atom/visualizations'
@@ -30,92 +28,30 @@ export default function App() {
   const [sceneSettings, setSceneSettings] = useState(SCENE_DEFAULTS)
   const [effectSettings, setEffectSettings] = useState(EFFECT_DEFAULTS)
   const [xraySettings, setXraySettings] = useState(XRAY_DEFAULTS)
-  const [specialEffects, setSpecialEffects] = useState({
-    chromaticAberrationEnabled: false,
-    currentFx: SHARED_FX_NONE,
-    hue: 0,
-    hueCycleBaseHue: 0,
-    hueCycleEnabled: false,
-    hueCycleSavedEnabled: false,
-    hueCycleSavedHue: 0,
-    hueCycleSavedSaturation: 0,
-    hueCycleStartTime: 0,
-    hueSatEnabled: false,
-    pixelMosaicEnabled: false,
-    restoreChromaticAfterXray: false,
-    saturation: 0,
-    thermalVisionEnabled: false,
-    xrayMode: false,
-  })
+  const [specialEffects, setSpecialEffects] = useState(() => createInitialSharedSpecialEffectState())
 
   const updateChromaticAberration = (enabled) => {
-    setSpecialEffects((current) => ({
-      ...current,
-      ...setChromaticAberrationState(current, enabled),
-    }))
+    setSpecialEffects((current) => setSharedChromaticAberrationEnabled(current, enabled))
   }
 
   const updateXrayMode = (enabled) => {
-    setSpecialEffects((current) => ({
-      ...current,
-      ...setXrayModeState(current, enabled),
-    }))
+    setSpecialEffects((current) => setSharedXrayModeEnabled(current, enabled))
   }
 
   useEffect(() => {
-    const handleSharedEffectHotkey = createSharedEffectHotkeyListener({
-      cinematic: () => {
-        setSpecialEffects((current) => ({
-          ...current,
-          currentFx: toggleSharedFxMode(current.currentFx, SHARED_FX_CINEMATIC),
-        }))
-      },
-      chromaticAberration: () => {
-        updateChromaticAberration(!specialEffects.chromaticAberrationEnabled)
-      },
-      databend: () => {
-        setSpecialEffects((current) => ({
-          ...current,
-          currentFx: toggleSharedFxMode(current.currentFx, SHARED_FX_DATABEND),
-        }))
-      },
-      hueCycle: () => {
-        setSpecialEffects((current) => ({
-          ...current,
-          ...toggleHueCycleState(current, performance.now() / 1000),
-        }))
-      },
-      pixelMosaic: () => {
-        setSpecialEffects((current) => ({
-          ...current,
-          pixelMosaicEnabled: !current.pixelMosaicEnabled,
-        }))
-      },
-      thermalVision: () => {
-        setSpecialEffects((current) => ({
-          ...current,
-          thermalVisionEnabled: !current.thermalVisionEnabled,
-        }))
-      },
-      xrayMode: () => {
-        updateXrayMode(!specialEffects.xrayMode)
-      },
-    })
+    const handleSharedEffectHotkey = createSharedEffectHotkeyListener(
+      createSharedSpecialEffectHandlers(setSpecialEffects),
+    )
 
     const onKeyDown = (event) => {
       if (event.repeat || isEditableTarget(event.target)) return
 
+      // Keep the local molecule switcher separate from the global scene effect hotkeys.
       if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
         event.preventDefault()
 
-        setVisualization((current) => {
-          const currentIndex = VISUALIZATION_OPTIONS.findIndex(({ value }) => value === current)
-          if (currentIndex < 0) return DEFAULT_VISUALIZATION
-
-          const direction = event.key === 'ArrowRight' ? 1 : -1
-          const nextIndex = (currentIndex + direction + VISUALIZATION_OPTIONS.length) % VISUALIZATION_OPTIONS.length
-          return VISUALIZATION_OPTIONS[nextIndex].value
-        })
+        const direction = event.key === 'ArrowRight' ? 1 : -1
+        setVisualization((current) => getNextVisualization(current, direction))
 
         return
       }
@@ -126,11 +62,12 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown)
 
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [specialEffects.chromaticAberrationEnabled, specialEffects.xrayMode])
+  }, [])
   const label = VISUALIZATION_LABELS[visualization] ?? ''
 
   return (
     <main className="app-shell">
+      {/* The canvas owns the 3D scene; the controls stay outside so they do not rerender the scene tree. */}
       <Canvas camera={CAMERA_DEFAULTS} gl={{ antialias: true }}>
         <AtomScene
           chromaticAberrationEnabled={specialEffects.chromaticAberrationEnabled}
@@ -143,6 +80,7 @@ export default function App() {
         />
       </Canvas>
 
+      {/* Keep the GUI and quick-pick nav decoupled from scene rendering for readability. */}
       <AtomGuiControls
         chromaticAberrationEnabled={specialEffects.chromaticAberrationEnabled}
         effectSettings={effectSettings}

@@ -8,6 +8,7 @@ import {
   SingleBond,
   StructuralBond,
 } from '../core'
+import { ATOM_RENDER_STYLES, createAtomPositionLookup } from './helpers'
 
 export function AtropineMolecule() {
   const moleculeRef = useRef(null)
@@ -36,16 +37,10 @@ export function AtropineMolecule() {
     { key: 'c20', element: 'C', scale: ATOM_SCALES.C, position: [5.0378 * scale, -0.3636 * scale, -1.2392 * scale] },
     { key: 'c21', element: 'C', scale: ATOM_SCALES.C, position: [5.5315 * scale, -1.2697 * scale, -0.3006 * scale] },
   ]
-  const atoms = Object.fromEntries(atomDefs.map(({ key, position }) => [key, position]))
+  const atoms = createAtomPositionLookup(atomDefs)
   const phenylRingKeys = ['c15', 'c17', 'c19', 'c21', 'c20', 'c18']
   const phenylRingPoints = phenylRingKeys.map((key) => atoms[key])
   const doubleBondKeys = new Set(['o2-c13'])
-
-  const atomStyle = {
-    C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
-    N: { color: '#c06aa6', emissive: '#7c3d67', emissiveIntensity: 1.4 },
-    O: { color: '#b44646', emissive: '#7a1f1f', emissiveIntensity: 1.25 },
-  }
 
   const bondDefs = [
     ['o1', 'c11'],
@@ -95,9 +90,9 @@ export function AtropineMolecule() {
           key={key}
           position={atoms[key]}
           scale={scale}
-          color={atomStyle[element].color}
-          emissive={atomStyle[element].emissive}
-          emissiveIntensity={atomStyle[element].emissiveIntensity}
+          color={ATOM_RENDER_STYLES[element].color}
+          emissive={ATOM_RENDER_STYLES[element].emissive}
+          emissiveIntensity={ATOM_RENDER_STYLES[element].emissiveIntensity}
         />
       ))}
 

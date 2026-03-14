@@ -10,12 +10,10 @@ import {
   ATOM_VISUALIZATIONS,
   DEFAULT_VISUALIZATION,
   VISUALIZATION_LABELS,
+  VISUALIZATION_VALUE_BY_LABEL,
 } from './visualizations'
 
 const VISUALIZATION_NAMES = ATOM_VISUALIZATIONS.map(({ label }) => label)
-const VISUALIZATION_VALUE_BY_NAME = Object.fromEntries(
-  ATOM_VISUALIZATIONS.map(({ value, label }) => [label, value]),
-)
 
 function AtomGuiControls({
   chromaticAberrationEnabled,
@@ -76,7 +74,7 @@ function AtomGuiControls({
       .add(params, 'visualization', VISUALIZATION_NAMES)
       .name('Visualization')
       .onChange((name) => {
-        setVisualization(VISUALIZATION_VALUE_BY_NAME[name] ?? DEFAULT_VISUALIZATION)
+        setVisualization(VISUALIZATION_VALUE_BY_LABEL[name] ?? DEFAULT_VISUALIZATION)
       })
     sceneFolder
       .addColor(params, 'backgroundColor')
