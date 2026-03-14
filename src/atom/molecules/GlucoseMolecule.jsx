@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { ATOM_SCALES, BondElectronPair, Nucleus, StructuralBond } from '../core'
+import { ATOM_SCALES, Nucleus, SingleBond } from '../core'
 
 export function GlucoseMolecule() {
   const moleculeRef = useRef(null)
@@ -64,27 +64,21 @@ export function GlucoseMolecule() {
         />
       ))}
 
-      {bondDefs.map(([startKey, endKey]) => (
-        <StructuralBond
-          key={`structure-${startKey}-${endKey}`}
+      {bondDefs.map(([startKey, endKey], index) => (
+        <SingleBond
+          key={`${startKey}-${endKey}`}
           start={atoms[startKey]}
           end={atoms[endKey]}
           color="#77b4df"
           opacity={0.42}
-        />
-      ))}
-
-      {bondDefs.map(([startKey, endKey], index) => (
-        <BondElectronPair
-          key={`${startKey}-${endKey}`}
-          start={atoms[startKey]}
-          end={atoms[endKey]}
-          colorA={index < 7 ? '#8fd4ff' : '#9edbff'}
-          colorB={index < 7 ? '#bfe7ff' : '#d4f1ff'}
-          speed={8.4 + (index % 4) * 0.55}
-          phase={index * 0.46}
-          spread={index < 7 ? 0.085 : 0.07}
-          lineScale={index < 7 ? 0.28 : 0.24}
+          electronProps={{
+            colorA: index < 7 ? '#8fd4ff' : '#9edbff',
+            colorB: index < 7 ? '#bfe7ff' : '#d4f1ff',
+            speed: 8.4 + (index % 4) * 0.55,
+            phase: index * 0.46,
+            spread: index < 7 ? 0.085 : 0.07,
+            lineScale: index < 7 ? 0.28 : 0.24,
+          }}
         />
       ))}
     </group>

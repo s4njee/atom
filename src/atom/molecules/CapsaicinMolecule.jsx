@@ -3,8 +3,9 @@ import { useFrame } from '@react-three/fiber'
 import {
   AromaticRingPair,
   ATOM_SCALES,
-  BondElectronPair,
+  DoubleBond,
   Nucleus,
+  SingleBond,
   StructuralBond,
 } from '../core'
 
@@ -36,6 +37,7 @@ export function CapsaicinMolecule() {
   const atoms = Object.fromEntries(atomDefs.map(({ key, position }) => [key, position]))
   const ringKeys = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6']
   const ringPoints = ringKeys.map((key) => atoms[key])
+  const doubleBondKeys = new Set(['c9-o9', 'c11-c12'])
 
   const atomStyle = {
     C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
@@ -64,6 +66,12 @@ export function CapsaicinMolecule() {
     ['c13', 'c14'],
     ['c14', 'c15'],
   ]
+  const tailBondDefs = bondDefs.filter(
+    ([startKey, endKey]) => !ringKeys.includes(startKey) || !ringKeys.includes(endKey),
+  )
+  const ringBondDefs = bondDefs.filter(
+    ([startKey, endKey]) => ringKeys.includes(startKey) && ringKeys.includes(endKey),
+  )
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime()
@@ -87,7 +95,7 @@ export function CapsaicinMolecule() {
         />
       ))}
 
-      {bondDefs.map(([startKey, endKey]) => (
+      {ringBondDefs.map(([startKey, endKey]) => (
         <StructuralBond
           key={`structure-${startKey}-${endKey}`}
           start={atoms[startKey]}
@@ -97,21 +105,57 @@ export function CapsaicinMolecule() {
         />
       ))}
 
-      {bondDefs
-        .filter(([startKey, endKey]) => !ringKeys.includes(startKey) || !ringKeys.includes(endKey))
-        .map(([startKey, endKey], index) => (
-          <BondElectronPair
-            key={`${startKey}-${endKey}`}
+      {tailBondDefs.map(([startKey, endKey], index) => {
+        const bondKey = `${startKey}-${endKey}`
+        const electronProps = {
+          colorA: index < 5 ? '#8fd4ff' : '#9edbff',
+          colorB: index < 5 ? '#c9edff' : '#dff5ff',
+          speed: 8.2 + (index % 5) * 0.46,
+          phase: index * 0.39,
+          spread: index < 4 ? 0.08 : 0.07,
+          lineScale: index < 4 ? 0.26 : 0.23,
+        }
+
+        if (doubleBondKeys.has(bondKey)) {
+          return (
+            <DoubleBond
+              key={bondKey}
+              start={atoms[startKey]}
+              end={atoms[endKey]}
+              color="#77b4df"
+              opacity={0.42}
+              sigmaProps={electronProps}
+              piPairs={[
+                {
+                  sign: 1,
+                  colorA: '#9edbff',
+                  colorB: '#dff5ff',
+                  speed: 10.9 + (index % 3) * 0.34,
+                  phase: index * 0.39,
+                },
+                {
+                  sign: -1,
+                  colorA: '#7fc3ff',
+                  colorB: '#c9edff',
+                  speed: 10.3 + (index % 3) * 0.3,
+                  phase: index * 0.39 + Math.PI * 0.56,
+                },
+              ]}
+            />
+          )
+        }
+
+        return (
+          <SingleBond
+            key={bondKey}
             start={atoms[startKey]}
             end={atoms[endKey]}
-            colorA={index < 5 ? '#8fd4ff' : '#9edbff'}
-            colorB={index < 5 ? '#c9edff' : '#dff5ff'}
-            speed={8.2 + (index % 5) * 0.46}
-            phase={index * 0.39}
-            spread={index < 4 ? 0.08 : 0.07}
-            lineScale={index < 4 ? 0.26 : 0.23}
+            color="#77b4df"
+            opacity={0.42}
+            electronProps={electronProps}
           />
-        ))}
+        )
+      })}
 
       <AromaticRingPair ringPoints={ringPoints} colorA="#8fd4ff" colorB="#d4f1ff" speed={11.9} />
       <AromaticRingPair ringPoints={ringPoints} colorA="#7fc3ff" colorB="#bfe7ff" speed={11.2} />

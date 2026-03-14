@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { ATOM_SCALES, BondElectronPair, Nucleus, PiBondPair } from '../core'
+import { ATOM_SCALES, DoubleBond, Nucleus, SingleBond } from '../core'
 
 export function EthyleneMolecule() {
   const moleculeRef = useRef(null)
@@ -11,6 +11,28 @@ export function EthyleneMolecule() {
     [-1.86, -0.98, 0],
     [1.86, 0.98, 0],
     [1.86, -0.98, 0],
+  ]
+  const singleBondDefs = [
+    {
+      start: carbonLeft,
+      end: hydrogens[0],
+      electronProps: { colorA: '#7fc3ff', colorB: '#a7ddff', speed: 9.8, phase: 0.4 },
+    },
+    {
+      start: carbonLeft,
+      end: hydrogens[1],
+      electronProps: { colorA: '#7fc3ff', colorB: '#a7ddff', speed: 9.2, phase: 1.2 },
+    },
+    {
+      start: carbonRight,
+      end: hydrogens[2],
+      electronProps: { colorA: '#7fc3ff', colorB: '#a7ddff', speed: 10.1, phase: 2.1 },
+    },
+    {
+      start: carbonRight,
+      end: hydrogens[3],
+      electronProps: { colorA: '#7fc3ff', colorB: '#a7ddff', speed: 9.4, phase: 2.8 },
+    },
   ]
 
   useFrame((state) => {
@@ -49,50 +71,32 @@ export function EthyleneMolecule() {
         />
       ))}
 
-      <BondElectronPair
+      {singleBondDefs.map(({ start, end, electronProps }, index) => (
+        <SingleBond
+          key={`single-${index}`}
+          start={start}
+          end={end}
+          showStructure={false}
+          electronProps={electronProps}
+        />
+      ))}
+
+      <DoubleBond
         start={carbonLeft}
         end={carbonRight}
-        colorA="#c7ebff"
-        colorB="#9fdfff"
-        speed={10.8}
-        phase={0}
-        spread={0.1}
+        showStructure={false}
+        sigmaProps={{
+          colorA: '#c7ebff',
+          colorB: '#9fdfff',
+          speed: 10.8,
+          phase: 0,
+          spread: 0.1,
+        }}
+        piPairs={[
+          { sign: 1, colorA: '#9dd8ff', colorB: '#c5ebff', speed: 11.9, phase: 0 },
+          { sign: -1, colorA: '#6fbfff', colorB: '#9ed9ff', speed: 11.1, phase: Math.PI * 0.7 },
+        ]}
       />
-      <BondElectronPair
-        start={carbonLeft}
-        end={hydrogens[0]}
-        colorA="#7fc3ff"
-        colorB="#a7ddff"
-        speed={9.8}
-        phase={0.4}
-      />
-      <BondElectronPair
-        start={carbonLeft}
-        end={hydrogens[1]}
-        colorA="#7fc3ff"
-        colorB="#a7ddff"
-        speed={9.2}
-        phase={1.2}
-      />
-      <BondElectronPair
-        start={carbonRight}
-        end={hydrogens[2]}
-        colorA="#7fc3ff"
-        colorB="#a7ddff"
-        speed={10.1}
-        phase={2.1}
-      />
-      <BondElectronPair
-        start={carbonRight}
-        end={hydrogens[3]}
-        colorA="#7fc3ff"
-        colorB="#a7ddff"
-        speed={9.4}
-        phase={2.8}
-      />
-
-      <PiBondPair sign={1} colorA="#9dd8ff" colorB="#c5ebff" speed={11.9} phase={0} />
-      <PiBondPair sign={-1} colorA="#6fbfff" colorB="#9ed9ff" speed={11.1} phase={Math.PI * 0.7} />
     </group>
   )
 }

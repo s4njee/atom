@@ -45,6 +45,7 @@ const CHROMATIC_OSCILLATION_SPEED = 3.2
 const XRAY_RIM_STRENGTH = 1.35
 const XRAY_RIM_POWER = 2.4
 const XRAY_RIM_COLOR = new THREE.Color(0xe8fbff)
+const LOCAL_BOND_AXIS = new THREE.Vector3(1, 0, 0)
 
 function isEditableTarget(target) {
   return target instanceof HTMLElement && (
@@ -543,10 +544,17 @@ function SigmaBondPair({ colorA = '#c2ebff', colorB = '#8fd2ff', speedA = 11.8, 
   )
 }
 
+// Compatibility stub: earlier molecule drafts had a separate volumetric cloud pass layered on
+// top of the sigma bond electrons. The current look gets enough motion from the animated
+// sprites/trails alone, so we keep the component surface but intentionally render nothing.
+// If we ever bring the cloud layer back, this is the hook point and existing call sites can
+// stay unchanged.
 function SigmaBondCloud() {
   return null
 }
 
+// Same stub contract as SigmaBondCloud. `offset` stays in the signature so older call sites
+// still document where the pi lobe would sit if we reintroduce a visible cloud pass.
 function PiBondCloud({ offset = [0, 0.62, 0] }) {
   return null
 }
@@ -771,6 +779,10 @@ function BondElectronPair({
   spread = 0.12,
   lightIntensity = 10,
 }) {
+  // Per-electron point lights are the main GPU-cost lever in the bond system. Treat
+  // Atropine as the high-GPU lighting reference when a richer, more luminous bond pass is
+  // acceptable. Treat Empagliflozin as the low-GPU reference/preset: prefer dimmer or
+  // disabled bond lights there when we need a lighter-weight lighting profile.
   return (
     <>
       <BondElectron
@@ -937,6 +949,48 @@ function StructuralBond({
   )
 }
 
+function getBondTransform(start = [0, 0, 0], end = [1, 0, 0]) {
+  const startVec = new THREE.Vector3(...start)
+  const endVec = new THREE.Vector3(...end)
+  const axis = endVec.clone().sub(startVec)
+  const length = axis.length()
+  const midpoint = startVec.clone().add(endVec).multiplyScalar(0.5)
+  const quaternion = new THREE.Quaternion()
+
+  if (length > 0) {
+    quaternion.setFromUnitVectors(LOCAL_BOND_AXIS, axis.normalize())
+  }
+
+  return { midpoint, quaternion, length }
+}
+
+function SingleBond({
+  start,
+  end,
+  color = '#77b4df',
+  opacity = 0.42,
+  showStructure = true,
+  electronProps = {},
+}) {
+  return (
+    <>
+      {showStructure ? (
+        <StructuralBond
+          start={start}
+          end={end}
+          color={color}
+          opacity={opacity}
+        />
+      ) : null}
+      <BondElectronPair
+        start={start}
+        end={end}
+        {...electronProps}
+      />
+    </>
+  )
+}
+
 function PiBondElectron({ sign = 1, color = '#8fd0ff', speed = 12, phase = 0, lightIntensity = 0 }) {
   const electronRef = useRef(null)
   const trailRef = useRef(null)
@@ -1020,6 +1074,56 @@ function PiBondPair({
   )
 }
 
+function DoubleBond({
+  start,
+  end,
+  color = '#77b4df',
+  opacity = 0.42,
+  showStructure = true,
+  sigmaProps = {},
+  piPairs = [
+    { sign: 1, colorA: '#9dd8ff', colorB: '#c5ebff', speed: 11.9, phase: 0 },
+    { sign: -1, colorA: '#6fbfff', colorB: '#9ed9ff', speed: 11.1, phase: Math.PI * 0.7 },
+  ],
+}) {
+  // PiBondPair is authored in a local left-to-right bond space, so the helper computes the
+  // world-space midpoint/orientation once and reuses that transform for any arbitrary bond.
+  const { midpoint, quaternion, length } = getBondTransform(start, end)
+  const orbitalScale = length / 2
+
+  return (
+    <>
+      {showStructure ? (
+        <StructuralBond
+          start={start}
+          end={end}
+          color={color}
+          opacity={opacity}
+        />
+      ) : null}
+      <BondElectronPair
+        start={start}
+        end={end}
+        {...sigmaProps}
+      />
+      <group
+        position={midpoint.toArray()}
+        quaternion={quaternion.toArray()}
+        scale={orbitalScale}
+      >
+        {piPairs.map(({ sign = 1, ...pairProps }, index) => (
+          <PiBondPair
+            // Sign and index keep the key stable when both lobes share the same phase.
+            key={`pi-${sign}-${index}`}
+            sign={sign}
+            {...pairProps}
+          />
+        ))}
+      </group>
+    </>
+  )
+}
+
 export {
   ATOM_SCALES,
   BUCKMINSTERFULLERENE,
@@ -1031,6 +1135,8 @@ export {
   PiBondCloud,
   SigmaBondPair,
   BondElectronPair,
+  SingleBond,
+  DoubleBond,
   AromaticRingPair,
   StructuralBond,
   PiBondPair,

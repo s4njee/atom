@@ -2,10 +2,9 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import {
   ATOM_SCALES,
-  BondElectronPair,
   BUCKMINSTERFULLERENE,
   Nucleus,
-  StructuralBond,
+  SingleBond,
 } from '../core'
 
 export function BuckminsterfullereneMolecule() {
@@ -24,28 +23,22 @@ export function BuckminsterfullereneMolecule() {
 
   return (
     <group ref={moleculeRef}>
-      {bondDefs.map(([startIndex, endIndex]) => (
-        <StructuralBond
-          key={`structure-${startIndex}-${endIndex}`}
+      {bondDefs.map(([startIndex, endIndex], index) => (
+        <SingleBond
+          key={`electron-${startIndex}-${endIndex}`}
           start={atomPositions[startIndex]}
           end={atomPositions[endIndex]}
           color="#87d0ff"
           opacity={0.38}
-        />
-      ))}
-
-      {bondDefs.map(([startIndex, endIndex], index) => (
-        <BondElectronPair
-          key={`electron-${startIndex}-${endIndex}`}
-          start={atomPositions[startIndex]}
-          end={atomPositions[endIndex]}
-          colorA="#8fd4ff"
-          colorB="#d8f4ff"
-          speed={7.8 + (index % 6) * 0.35}
-          phase={index * 0.29}
-          spread={0.055}
-          lineScale={0.21}
-          lightIntensity={0}
+          electronProps={{
+            colorA: '#8fd4ff',
+            colorB: '#d8f4ff',
+            speed: 7.8 + (index % 6) * 0.35,
+            phase: index * 0.29,
+            spread: 0.055,
+            lineScale: 0.21,
+            lightIntensity: 0,
+          }}
         />
       ))}
 

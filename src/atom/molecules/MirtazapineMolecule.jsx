@@ -3,8 +3,8 @@ import { useFrame } from '@react-three/fiber'
 import {
   AromaticRingPair,
   ATOM_SCALES,
-  BondElectronPair,
   Nucleus,
+  SingleBond,
   StructuralBond,
 } from '../core'
 
@@ -70,6 +70,15 @@ export function MirtazapineMolecule() {
     ['c17', 'c18'],
     ['c19', 'c20'],
   ]
+  const bridgeBondDefs = bondDefs.filter(([startKey, endKey]) => (
+    !leftRingKeys.includes(startKey) || !leftRingKeys.includes(endKey)
+  ) && (
+    !rightRingKeys.includes(startKey) || !rightRingKeys.includes(endKey)
+  ))
+  const ringBondDefs = bondDefs.filter(([startKey, endKey]) => (
+    (leftRingKeys.includes(startKey) && leftRingKeys.includes(endKey)) ||
+    (rightRingKeys.includes(startKey) && rightRingKeys.includes(endKey))
+  ))
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime()
@@ -93,7 +102,7 @@ export function MirtazapineMolecule() {
         />
       ))}
 
-      {bondDefs.map(([startKey, endKey]) => (
+      {ringBondDefs.map(([startKey, endKey]) => (
         <StructuralBond
           key={`structure-${startKey}-${endKey}`}
           start={atoms[startKey]}
@@ -103,25 +112,23 @@ export function MirtazapineMolecule() {
         />
       ))}
 
-      {bondDefs
-        .filter(([startKey, endKey]) => (
-          !leftRingKeys.includes(startKey) || !leftRingKeys.includes(endKey)
-        ) && (
-          !rightRingKeys.includes(startKey) || !rightRingKeys.includes(endKey)
-        ))
-        .map(([startKey, endKey], index) => (
-          <BondElectronPair
-            key={`${startKey}-${endKey}`}
-            start={atoms[startKey]}
-            end={atoms[endKey]}
-            colorA={index < 6 ? '#8fd4ff' : '#a7ddff'}
-            colorB={index < 6 ? '#c9edff' : '#e6f7ff'}
-            speed={8.3 + (index % 5) * 0.42}
-            phase={index * 0.4}
-            spread={index < 4 ? 0.08 : 0.07}
-            lineScale={index < 4 ? 0.27 : 0.23}
-          />
-        ))}
+      {bridgeBondDefs.map(([startKey, endKey], index) => (
+        <SingleBond
+          key={`${startKey}-${endKey}`}
+          start={atoms[startKey]}
+          end={atoms[endKey]}
+          color="#77b4df"
+          opacity={0.42}
+          electronProps={{
+            colorA: index < 6 ? '#8fd4ff' : '#a7ddff',
+            colorB: index < 6 ? '#c9edff' : '#e6f7ff',
+            speed: 8.3 + (index % 5) * 0.42,
+            phase: index * 0.4,
+            spread: index < 4 ? 0.08 : 0.07,
+            lineScale: index < 4 ? 0.27 : 0.23,
+          }}
+        />
+      ))}
 
       <AromaticRingPair ringPoints={leftRingPoints} colorA="#8fd4ff" colorB="#d4f1ff" speed={11.8} />
       <AromaticRingPair ringPoints={leftRingPoints} colorA="#7fc3ff" colorB="#c7ebff" speed={11} />

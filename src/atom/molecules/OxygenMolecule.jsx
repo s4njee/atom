@@ -1,13 +1,6 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import {
-  ATOM_SCALES,
-  Nucleus,
-  PiBondCloud,
-  PiBondPair,
-  SigmaBondCloud,
-  SigmaBondPair,
-} from '../core'
+import { ATOM_SCALES, DoubleBond, Nucleus } from '../core'
 
 export function OxygenMolecule() {
   const moleculeRef = useRef(null)
@@ -25,12 +18,22 @@ export function OxygenMolecule() {
     <group ref={moleculeRef}>
       <Nucleus position={[-separation, 0, 0]} scale={ATOM_SCALES.O} />
       <Nucleus position={[separation, 0, 0]} scale={ATOM_SCALES.O} />
-      <SigmaBondCloud />
-      <PiBondCloud offset={[0, 0.64, 0]} />
-      <PiBondCloud offset={[0, -0.64, 0]} />
-      <SigmaBondPair />
-      <PiBondPair sign={1} colorA="#98d8ff" colorB="#69c1ff" speed={13.6} phase={0} />
-      <PiBondPair sign={-1} colorA="#66b8ff" colorB="#9fdfff" speed={12.8} phase={Math.PI / 2} />
+      <DoubleBond
+        start={[-separation, 0, 0]}
+        end={[separation, 0, 0]}
+        showStructure={false}
+        sigmaProps={{
+          colorA: '#c7ebff',
+          colorB: '#9fdfff',
+          speed: 11.2,
+          phase: 0,
+          spread: 0.1,
+        }}
+        piPairs={[
+          { sign: 1, colorA: '#98d8ff', colorB: '#69c1ff', speed: 13.6, phase: 0 },
+          { sign: -1, colorA: '#66b8ff', colorB: '#9fdfff', speed: 12.8, phase: Math.PI / 2 },
+        ]}
+      />
     </group>
   )
 }

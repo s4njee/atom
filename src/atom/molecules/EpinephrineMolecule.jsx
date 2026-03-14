@@ -3,8 +3,8 @@ import { useFrame } from '@react-three/fiber'
 import {
   AromaticRingPair,
   ATOM_SCALES,
-  BondElectronPair,
   Nucleus,
+  SingleBond,
   StructuralBond,
 } from '../core'
 
@@ -52,6 +52,12 @@ export function EpinephrineMolecule() {
     ['c8', 'n1'],
     ['n1', 'c9'],
   ]
+  const sideChainBondDefs = bondDefs.filter(
+    ([startKey, endKey]) => !ringKeys.includes(startKey) || !ringKeys.includes(endKey),
+  )
+  const ringBondDefs = bondDefs.filter(
+    ([startKey, endKey]) => ringKeys.includes(startKey) && ringKeys.includes(endKey),
+  )
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime()
@@ -75,7 +81,7 @@ export function EpinephrineMolecule() {
         />
       ))}
 
-      {bondDefs.map(([startKey, endKey]) => (
+      {ringBondDefs.map(([startKey, endKey]) => (
         <StructuralBond
           key={`structure-${startKey}-${endKey}`}
           start={atoms[startKey]}
@@ -85,21 +91,23 @@ export function EpinephrineMolecule() {
         />
       ))}
 
-      {bondDefs
-        .filter(([startKey, endKey]) => !ringKeys.includes(startKey) || !ringKeys.includes(endKey))
-        .map(([startKey, endKey], index) => (
-          <BondElectronPair
-            key={`${startKey}-${endKey}`}
-            start={atoms[startKey]}
-            end={atoms[endKey]}
-            colorA={index < 3 ? '#8fd4ff' : '#9edbff'}
-            colorB={index < 3 ? '#bde7ff' : '#d4f1ff'}
-            speed={8.6 + (index % 4) * 0.5}
-            phase={index * 0.44}
-            spread={0.075}
-            lineScale={0.25}
-          />
-        ))}
+      {sideChainBondDefs.map(([startKey, endKey], index) => (
+        <SingleBond
+          key={`${startKey}-${endKey}`}
+          start={atoms[startKey]}
+          end={atoms[endKey]}
+          color="#77b4df"
+          opacity={0.42}
+          electronProps={{
+            colorA: index < 3 ? '#8fd4ff' : '#9edbff',
+            colorB: index < 3 ? '#bde7ff' : '#d4f1ff',
+            speed: 8.6 + (index % 4) * 0.5,
+            phase: index * 0.44,
+            spread: 0.075,
+            lineScale: 0.25,
+          }}
+        />
+      ))}
 
       <AromaticRingPair ringPoints={ringPoints} colorA="#8fd4ff" colorB="#d4f1ff" speed={11.8} />
       <AromaticRingPair ringPoints={ringPoints} colorA="#7fc3ff" colorB="#bfe7ff" speed={11.1} />

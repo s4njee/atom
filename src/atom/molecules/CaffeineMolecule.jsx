@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { ATOM_SCALES, BondElectronPair, Nucleus, StructuralBond } from '../core'
+import { ATOM_SCALES, DoubleBond, Nucleus, SingleBond } from '../core'
 
 export function CaffeineMolecule() {
   const moleculeRef = useRef(null)
@@ -23,6 +23,7 @@ export function CaffeineMolecule() {
     { key: 'a14', element: 'C', scale: ATOM_SCALES.C, position: [-2.2969 * scale, 2.1881 * scale, 0.0007 * scale] },
   ]
   const atoms = Object.fromEntries(atomDefs.map(({ key, position }) => [key, position]))
+  const doubleBondKeys = new Set(['a1-a9', 'a2-a10'])
 
   const atomStyle = {
     C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
@@ -69,29 +70,57 @@ export function CaffeineMolecule() {
         />
       ))}
 
-      {bondDefs.map(([startKey, endKey]) => (
-        <StructuralBond
-          key={`structure-${startKey}-${endKey}`}
-          start={atoms[startKey]}
-          end={atoms[endKey]}
-          color="#77b4df"
-          opacity={0.42}
-        />
-      ))}
+      {bondDefs.map(([startKey, endKey], index) => {
+        const bondKey = `${startKey}-${endKey}`
+        const electronProps = {
+          colorA: index < 12 ? '#9edbff' : '#7fc3ff',
+          colorB: index < 12 ? '#d1f0ff' : '#b7e6ff',
+          speed: 8.6 + (index % 5) * 0.45,
+          phase: index * 0.41,
+          spread: index < 12 ? 0.09 : 0.07,
+          lineScale: index < 12 ? 0.3 : 0.26,
+        }
 
-      {bondDefs.map(([startKey, endKey], index) => (
-        <BondElectronPair
-          key={`${startKey}-${endKey}`}
-          start={atoms[startKey]}
-          end={atoms[endKey]}
-          colorA={index < 12 ? '#9edbff' : '#7fc3ff'}
-          colorB={index < 12 ? '#d1f0ff' : '#b7e6ff'}
-          speed={8.6 + (index % 5) * 0.45}
-          phase={index * 0.41}
-          spread={index < 12 ? 0.09 : 0.07}
-          lineScale={index < 12 ? 0.3 : 0.26}
-        />
-      ))}
+        if (doubleBondKeys.has(bondKey)) {
+          return (
+            <DoubleBond
+              key={bondKey}
+              start={atoms[startKey]}
+              end={atoms[endKey]}
+              color="#77b4df"
+              opacity={0.42}
+              sigmaProps={electronProps}
+              piPairs={[
+                {
+                  sign: 1,
+                  colorA: '#9edbff',
+                  colorB: '#dff5ff',
+                  speed: 11.1 + (index % 3) * 0.32,
+                  phase: index * 0.41,
+                },
+                {
+                  sign: -1,
+                  colorA: '#7fc3ff',
+                  colorB: '#c7ebff',
+                  speed: 10.6 + (index % 3) * 0.28,
+                  phase: index * 0.41 + Math.PI * 0.58,
+                },
+              ]}
+            />
+          )
+        }
+
+        return (
+          <SingleBond
+            key={bondKey}
+            start={atoms[startKey]}
+            end={atoms[endKey]}
+            color="#77b4df"
+            opacity={0.42}
+            electronProps={electronProps}
+          />
+        )
+      })}
     </group>
   )
 }

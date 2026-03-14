@@ -3,8 +3,8 @@ import { useFrame } from '@react-three/fiber'
 import {
   AromaticRingPair,
   ATOM_SCALES,
-  BondElectronPair,
   Nucleus,
+  SingleBond,
   StructuralBond,
 } from '../core'
 
@@ -93,6 +93,15 @@ export function EmpagliflozinMolecule() {
     ['a28', 'a30'],
     ['a29', 'a31'],
   ]
+  const bridgeBondDefs = bondDefs.filter(([startKey, endKey]) => (
+    !leftRingKeys.includes(startKey) || !leftRingKeys.includes(endKey)
+  ) && (
+    !rightRingKeys.includes(startKey) || !rightRingKeys.includes(endKey)
+  ))
+  const ringBondDefs = bondDefs.filter(([startKey, endKey]) => (
+    (leftRingKeys.includes(startKey) && leftRingKeys.includes(endKey)) ||
+    (rightRingKeys.includes(startKey) && rightRingKeys.includes(endKey))
+  ))
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime()
@@ -116,7 +125,7 @@ export function EmpagliflozinMolecule() {
         />
       ))}
 
-      {bondDefs.map(([startKey, endKey]) => (
+      {ringBondDefs.map(([startKey, endKey]) => (
         <StructuralBond
           key={`structure-${startKey}-${endKey}`}
           start={atoms[startKey]}
@@ -126,26 +135,24 @@ export function EmpagliflozinMolecule() {
         />
       ))}
 
-      {bondDefs
-        .filter(([startKey, endKey]) => (
-          !leftRingKeys.includes(startKey) || !leftRingKeys.includes(endKey)
-        ) && (
-          !rightRingKeys.includes(startKey) || !rightRingKeys.includes(endKey)
-        ))
-        .map(([startKey, endKey], index) => (
-          <BondElectronPair
-            key={`${startKey}-${endKey}`}
-            start={atoms[startKey]}
-            end={atoms[endKey]}
-            colorA={index < 10 ? '#8fd4ff' : '#a7ddff'}
-            colorB={index < 10 ? '#c9edff' : '#e6f7ff'}
-            speed={8 + (index % 5) * 0.38}
-            phase={index * 0.35}
-            spread={index < 8 ? 0.08 : 0.068}
-            lineScale={index < 8 ? 0.25 : 0.22}
-            lightIntensity={0}
-          />
-        ))}
+      {bridgeBondDefs.map(([startKey, endKey], index) => (
+        <SingleBond
+          key={`${startKey}-${endKey}`}
+          start={atoms[startKey]}
+          end={atoms[endKey]}
+          color="#77b4df"
+          opacity={0.42}
+          electronProps={{
+            colorA: index < 10 ? '#8fd4ff' : '#a7ddff',
+            colorB: index < 10 ? '#c9edff' : '#e6f7ff',
+            speed: 8 + (index % 5) * 0.38,
+            phase: index * 0.35,
+            spread: index < 8 ? 0.08 : 0.068,
+            lineScale: index < 8 ? 0.25 : 0.22,
+            lightIntensity: 0,
+          }}
+        />
+      ))}
 
       <AromaticRingPair ringPoints={leftRingPoints} colorA="#8fd4ff" colorB="#d4f1ff" speed={11.4} />
       <AromaticRingPair ringPoints={leftRingPoints} colorA="#7fc3ff" colorB="#c7ebff" speed={10.7} />
