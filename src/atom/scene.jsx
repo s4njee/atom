@@ -5,11 +5,11 @@ import {
   LIGHT_POSITIONS,
 } from './config'
 import { createXrayMaterialController } from './core'
-import SharedEffectStack from '../../../../src/shared/special-effects/SharedEffectStack.tsx'
 import {
+  SharedEffectStack,
   SHARED_FX_CINEMATIC,
   SHARED_FX_DATABEND,
-} from '../../../../src/shared/special-effects/shared-special-effects.ts'
+} from '../../../../src/shared/special-effects/index.ts'
 import {
   DEFAULT_VISUALIZATION,
   VISUALIZATION_COMPONENTS,

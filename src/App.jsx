@@ -18,7 +18,7 @@ import {
   SHARED_FX_NONE,
   toggleHueCycleState,
   toggleSharedFxMode,
-} from '../../../src/shared/special-effects/shared-special-effects.ts'
+} from '../../../src/shared/special-effects/index.ts'
 import {
   DEFAULT_VISUALIZATION,
   VISUALIZATION_LABELS,
