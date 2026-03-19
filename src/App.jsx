@@ -42,6 +42,15 @@ export default function App() {
   const [searchLoading, setSearchLoading]     = useState(false)
   const [searchError, setSearchError]         = useState(null)
 
+  const handleApplyPreset = useCallback((preset) => {
+    if (preset.effect && Object.keys(preset.effect).length > 0) {
+      setEffectSettings((current) => ({ ...current, ...preset.effect }))
+    }
+    if (preset.scene && Object.keys(preset.scene).length > 0) {
+      setSceneSettings((current) => ({ ...current, ...preset.scene }))
+    }
+  }, [])
+
   const updateChromaticAberration = (enabled) => {
     setSpecialEffects((current) => setSharedChromaticAberrationEnabled(current, enabled))
   }
@@ -152,6 +161,7 @@ export default function App() {
       <AtomGuiControls
         chromaticAberrationEnabled={specialEffects.chromaticAberrationEnabled}
         effectSettings={effectSettings}
+        onApplyPreset={handleApplyPreset}
         sceneSettings={sceneSettings}
         setEffectSettings={setEffectSettings}
         setSceneSettings={setSceneSettings}

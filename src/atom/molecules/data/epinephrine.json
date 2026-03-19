@@ -1,0 +1,57 @@
+{
+  "name": "Epinephrine",
+  "formula": "C9H13NO3",
+  "positionScale": 0.78,
+  "animation": {
+    "rotationYOffset": -0.22,
+    "rotationSpeed": 0.085,
+    "rotationXAmplitude": 0.05,
+    "rotationXFrequency": 0.18,
+    "rotationZBias": 0.34,
+    "rotationZAmplitude": 0.028,
+    "rotationZFrequency": 0.13,
+    "floatAmplitude": 0.05,
+    "floatFrequency": 0.38
+  },
+  "atoms": [
+    { "key": "c1", "element": "C", "position": [ 1.12,  0.04,  0.02] },
+    { "key": "c2", "element": "C", "position": [ 0.54,  0.98,  0.01] },
+    { "key": "c3", "element": "C", "position": [-0.56,  0.96, -0.02] },
+    { "key": "c4", "element": "C", "position": [-1.12, -0.02, -0.01] },
+    { "key": "c5", "element": "C", "position": [-0.54, -0.98,  0.02] },
+    { "key": "c6", "element": "C", "position": [ 0.56, -0.96,  0.01] },
+    { "key": "o3", "element": "O", "position": [-1.10,  1.78, -0.12] },
+    { "key": "o4", "element": "O", "position": [-2.26, -0.02, -0.16] },
+    { "key": "c7", "element": "C", "position": [ 2.28,  0.06,  0.20] },
+    { "key": "c8", "element": "C", "position": [ 3.18, -0.84,  0.66] },
+    { "key": "o8", "element": "O", "position": [ 3.42, -1.92, -0.12] },
+    { "key": "n1", "element": "N", "position": [ 4.26, -0.06,  0.92] },
+    { "key": "c9", "element": "C", "position": [ 5.34, -0.58,  1.58] }
+  ],
+  "bonds": [
+    { "from": "c1", "to": "c2" },
+    { "from": "c2", "to": "c3" },
+    { "from": "c3", "to": "c4" },
+    { "from": "c4", "to": "c5" },
+    { "from": "c5", "to": "c6" },
+    { "from": "c6", "to": "c1" },
+    { "from": "c3", "to": "o3" },
+    { "from": "c4", "to": "o4" },
+    { "from": "c1", "to": "c7" },
+    { "from": "c7", "to": "c8" },
+    { "from": "c8", "to": "o8" },
+    { "from": "c8", "to": "n1" },
+    { "from": "n1", "to": "c9" }
+  ],
+  "aromaticRings": [
+    {
+      "keys": ["c1", "c2", "c3", "c4", "c5", "c6"],
+      "structural": true,
+      "pairs": [
+        { "colorA": "#8fd4ff", "colorB": "#d4f1ff", "speed": 11.8 },
+        { "colorA": "#7fc3ff", "colorB": "#bfe7ff", "speed": 11.1 },
+        { "colorA": "#9edbff", "colorB": "#e6f7ff", "speed": 10.6 }
+      ]
+    }
+  ]
+}

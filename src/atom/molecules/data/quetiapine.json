@@ -1,0 +1,96 @@
+{
+  "name": "Quetiapine",
+  "formula": "C21H25N3O2S",
+  "positionScale": 0.58,
+  "animation": {
+    "rotationYOffset": -0.12,
+    "rotationSpeed": 0.074,
+    "rotationXBias": 0.26,
+    "rotationXAmplitude": 0.04,
+    "rotationXFrequency": 0.16,
+    "rotationZBias": 0.18,
+    "rotationZAmplitude": 0.02,
+    "rotationZFrequency": 0.12,
+    "floatAmplitude": 0.05,
+    "floatFrequency": 0.34
+  },
+  "atoms": [
+    { "key": "s1",  "element": "S", "position": [ 0.0000, -4.8944,  0] },
+    { "key": "o1",  "element": "O", "position": [-2.1060,  2.6274,  0] },
+    { "key": "o2",  "element": "O", "position": [-1.4133,  5.1808,  0] },
+    { "key": "n1",  "element": "N", "position": [-1.8016, -0.0009,  0] },
+    { "key": "n2",  "element": "N", "position": [-0.9339, -1.8028,  0] },
+    { "key": "n3",  "element": "N", "position": [ 0.5000, -2.7038,  0] },
+    { "key": "c7",  "element": "C", "position": [-2.3649, -0.8271,  0] },
+    { "key": "c8",  "element": "C", "position": [-0.8044, -0.0756,  0] },
+    { "key": "c9",  "element": "C", "position": [-1.9311, -1.7280,  0] },
+    { "key": "c10", "element": "C", "position": [-0.3705, -0.9766,  0] },
+    { "key": "c11", "element": "C", "position": [-2.2355,  0.9001,  0] },
+    { "key": "c12", "element": "C", "position": [-0.5000, -2.7038,  0] },
+    { "key": "c13", "element": "C", "position": [-1.6722,  1.7264,  0] },
+    { "key": "c14", "element": "C", "position": [-1.1235, -3.4855,  0] },
+    { "key": "c15", "element": "C", "position": [-0.9010, -4.4605,  0] },
+    { "key": "c16", "element": "C", "position": [-2.1140, -3.1632,  0] },
+    { "key": "c17", "element": "C", "position": [ 1.1235, -3.4855,  0] },
+    { "key": "c18", "element": "C", "position": [ 0.9010, -4.4605,  0] },
+    { "key": "c19", "element": "C", "position": [-1.6535, -5.1807,  0] },
+    { "key": "c20", "element": "C", "position": [-1.5427,  3.4536,  0] },
+    { "key": "c21", "element": "C", "position": [-2.8830, -3.8659,  0] },
+    { "key": "c22", "element": "C", "position": [-2.6512, -4.8814,  0] },
+    { "key": "c23", "element": "C", "position": [ 2.1140, -3.1632,  0] },
+    { "key": "c24", "element": "C", "position": [ 1.6535, -5.1807,  0] },
+    { "key": "c25", "element": "C", "position": [-1.9766,  4.3546,  0] },
+    { "key": "c26", "element": "C", "position": [ 2.8830, -3.8659,  0] },
+    { "key": "c27", "element": "C", "position": [ 2.6512, -4.8814,  0] }
+  ],
+  "bonds": [
+    { "from": "s1",  "to": "c15" },
+    { "from": "s1",  "to": "c18" },
+    { "from": "o1",  "to": "c13" },
+    { "from": "o1",  "to": "c20" },
+    { "from": "o2",  "to": "c25" },
+    { "from": "n1",  "to": "c7"  },
+    { "from": "n1",  "to": "c8"  },
+    { "from": "n1",  "to": "c11" },
+    { "from": "n2",  "to": "c9"  },
+    { "from": "n2",  "to": "c10" },
+    { "from": "n2",  "to": "c12" },
+    { "from": "n3",  "to": "c12" },
+    { "from": "n3",  "to": "c17" },
+    { "from": "c7",  "to": "c9"  },
+    { "from": "c8",  "to": "c10" },
+    { "from": "c11", "to": "c13" },
+    { "from": "c12", "to": "c14" },
+    { "from": "c14", "to": "c15" },
+    { "from": "c14", "to": "c16" },
+    { "from": "c15", "to": "c19" },
+    { "from": "c16", "to": "c21" },
+    { "from": "c17", "to": "c18" },
+    { "from": "c17", "to": "c23" },
+    { "from": "c18", "to": "c24" },
+    { "from": "c19", "to": "c22" },
+    { "from": "c20", "to": "c25" },
+    { "from": "c21", "to": "c22" },
+    { "from": "c23", "to": "c26" },
+    { "from": "c24", "to": "c27" },
+    { "from": "c26", "to": "c27" }
+  ],
+  "aromaticRings": [
+    {
+      "keys": ["c14", "c15", "c19", "c22", "c21", "c16"],
+      "structural": true,
+      "pairs": [
+        { "colorA": "#8fd4ff", "colorB": "#d4f1ff", "speed": 11.7 },
+        { "colorA": "#7fc3ff", "colorB": "#c7ebff", "speed": 10.9 }
+      ]
+    },
+    {
+      "keys": ["c17", "c18", "c24", "c27", "c26", "c23"],
+      "structural": true,
+      "pairs": [
+        { "colorA": "#8fd4ff", "colorB": "#d4f1ff", "speed": 11.4 },
+        { "colorA": "#7fc3ff", "colorB": "#c7ebff", "speed": 10.6 }
+      ]
+    }
+  ]
+}

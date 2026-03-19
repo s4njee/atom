@@ -18,7 +18,7 @@ import {
 import {
   DEFAULT_VISUALIZATION,
   VISUALIZATION_COMPONENTS,
-} from './visualizations'
+} from './visualizations.jsx'
 import { DynamicMolecule } from './molecules/DynamicMolecule'
 
 function AtomXrayController({ enabled, settings, targetRef }) {

@@ -1,0 +1,46 @@
+{
+  "name": "Caffeine",
+  "formula": "C8H10N4O2",
+  "positionScale": 0.58,
+  "animation": {
+    "rotationSpeed": 0.09,
+    "rotationXAmplitude": 0.04,
+    "rotationXFrequency": 0.18,
+    "floatAmplitude": 0.05,
+    "floatFrequency": 0.38
+  },
+  "atoms": [
+    { "key": "a1",  "element": "O", "position": [0.4700,  2.5688,  0.0006] },
+    { "key": "a2",  "element": "O", "position": [-3.1271, -0.4436, -0.0003] },
+    { "key": "a3",  "element": "N", "position": [-0.9686, -1.3125,  0.0000] },
+    { "key": "a4",  "element": "N", "position": [2.2182,  0.1412, -0.0003] },
+    { "key": "a5",  "element": "N", "position": [-1.3477,  1.0797, -0.0001] },
+    { "key": "a6",  "element": "N", "position": [1.4119, -1.9372,  0.0002] },
+    { "key": "a7",  "element": "C", "position": [0.8579,  0.2592, -0.0008] },
+    { "key": "a8",  "element": "C", "position": [0.3897, -1.0264, -0.0004] },
+    { "key": "a9",  "element": "C", "position": [0.0307,  1.4220, -0.0006] },
+    { "key": "a10", "element": "C", "position": [-1.9061, -0.2495, -0.0004] },
+    { "key": "a11", "element": "C", "position": [2.5032, -1.1998,  0.0003] },
+    { "key": "a12", "element": "C", "position": [-1.4276, -2.6960,  0.0008] },
+    { "key": "a13", "element": "C", "position": [3.1926,  1.2061,  0.0003] },
+    { "key": "a14", "element": "C", "position": [-2.2969,  2.1881,  0.0007] }
+  ],
+  "bonds": [
+    { "from": "a1",  "to": "a9",  "order": 2 },
+    { "from": "a2",  "to": "a10", "order": 2 },
+    { "from": "a3",  "to": "a8"  },
+    { "from": "a3",  "to": "a10" },
+    { "from": "a3",  "to": "a12" },
+    { "from": "a4",  "to": "a7"  },
+    { "from": "a4",  "to": "a11" },
+    { "from": "a4",  "to": "a13" },
+    { "from": "a5",  "to": "a9"  },
+    { "from": "a5",  "to": "a10" },
+    { "from": "a5",  "to": "a14" },
+    { "from": "a6",  "to": "a8"  },
+    { "from": "a6",  "to": "a11" },
+    { "from": "a7",  "to": "a8"  },
+    { "from": "a7",  "to": "a9"  }
+  ],
+  "aromaticRings": []
+}

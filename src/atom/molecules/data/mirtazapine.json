@@ -1,0 +1,82 @@
+{
+  "name": "Mirtazapine",
+  "formula": "C17H19N3",
+  "positionScale": 0.82,
+  "animation": {
+    "rotationYOffset": -0.2,
+    "rotationSpeed": 0.078,
+    "rotationXBias": 0.22,
+    "rotationXAmplitude": 0.04,
+    "rotationXFrequency": 0.17,
+    "rotationZBias": -0.14,
+    "rotationZAmplitude": 0.02,
+    "rotationZFrequency": 0.12,
+    "floatAmplitude": 0.05,
+    "floatFrequency": 0.34
+  },
+  "atoms": [
+    { "key": "n1",  "element": "N", "position": [-0.1696, -0.7951,  0] },
+    { "key": "n2",  "element": "N", "position": [-1.8703, -1.9740,  0] },
+    { "key": "n3",  "element": "N", "position": [ 1.4839, -1.0814,  0] },
+    { "key": "c4",  "element": "C", "position": [-1.0706, -0.3612,  0] },
+    { "key": "c5",  "element": "C", "position": [-1.9402, -0.9347,  0] },
+    { "key": "c6",  "element": "C", "position": [-0.0758, -1.8325,  0] },
+    { "key": "c7",  "element": "C", "position": [-0.9319, -2.4259,  0] },
+    { "key": "c8",  "element": "C", "position": [-1.2931,  0.6137,  0] },
+    { "key": "c9",  "element": "C", "position": [ 0.7313, -0.3612,  0] },
+    { "key": "c10", "element": "C", "position": [-0.6696,  1.3955,  0] },
+    { "key": "c11", "element": "C", "position": [ 0.3304,  1.3955,  0] },
+    { "key": "c12", "element": "C", "position": [ 0.9539,  0.6137,  0] },
+    { "key": "c13", "element": "C", "position": [-2.6987, -2.5341,  0] },
+    { "key": "c14", "element": "C", "position": [-2.3254,  0.7530,  0] },
+    { "key": "c15", "element": "C", "position": [-1.0352,  2.3709,  0] },
+    { "key": "c16", "element": "C", "position": [ 1.9444,  0.9360,  0] },
+    { "key": "c17", "element": "C", "position": [-2.7134,  1.7197,  0] },
+    { "key": "c18", "element": "C", "position": [-2.0639,  2.5341,  0] },
+    { "key": "c19", "element": "C", "position": [ 2.7134,  0.2334,  0] },
+    { "key": "c20", "element": "C", "position": [ 2.4816, -0.7821,  0] }
+  ],
+  "bonds": [
+    { "from": "n1",  "to": "c4"  },
+    { "from": "n1",  "to": "c6"  },
+    { "from": "n1",  "to": "c9"  },
+    { "from": "n2",  "to": "c5"  },
+    { "from": "n2",  "to": "c7"  },
+    { "from": "n2",  "to": "c13" },
+    { "from": "n3",  "to": "c9"  },
+    { "from": "n3",  "to": "c20" },
+    { "from": "c4",  "to": "c5"  },
+    { "from": "c4",  "to": "c8"  },
+    { "from": "c6",  "to": "c7"  },
+    { "from": "c8",  "to": "c10" },
+    { "from": "c8",  "to": "c14" },
+    { "from": "c9",  "to": "c12" },
+    { "from": "c10", "to": "c11" },
+    { "from": "c10", "to": "c15" },
+    { "from": "c11", "to": "c12" },
+    { "from": "c12", "to": "c16" },
+    { "from": "c14", "to": "c17" },
+    { "from": "c15", "to": "c18" },
+    { "from": "c16", "to": "c19" },
+    { "from": "c17", "to": "c18" },
+    { "from": "c19", "to": "c20" }
+  ],
+  "aromaticRings": [
+    {
+      "keys": ["c8", "c10", "c15", "c18", "c17", "c14"],
+      "structural": true,
+      "pairs": [
+        { "colorA": "#8fd4ff", "colorB": "#d4f1ff", "speed": 11.8 },
+        { "colorA": "#7fc3ff", "colorB": "#c7ebff", "speed": 11.0 }
+      ]
+    },
+    {
+      "keys": ["c9", "c12", "c16", "c19", "c20", "n3"],
+      "structural": true,
+      "pairs": [
+        { "colorA": "#9edbff", "colorB": "#e6f7ff", "speed": 11.3 },
+        { "colorA": "#7fc3ff", "colorB": "#c7ebff", "speed": 10.5 }
+      ]
+    }
+  ]
+}

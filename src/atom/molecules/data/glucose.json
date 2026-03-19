@@ -1,0 +1,43 @@
+{
+  "name": "Glucose",
+  "formula": "C6H12O6",
+  "positionScale": 0.7,
+  "animation": {
+    "rotationSpeed": 0.095,
+    "rotationXAmplitude": 0.045,
+    "rotationXFrequency": 0.2,
+    "rotationZAmplitude": 0.025,
+    "rotationZFrequency": 0.11,
+    "floatAmplitude": 0.05,
+    "floatFrequency": 0.4
+  },
+  "atoms": [
+    { "key": "o5", "element": "O", "position": [-0.72,  0.92,  0.10] },
+    { "key": "c1", "element": "C", "position": [ 0.34,  1.20,  0.42] },
+    { "key": "c2", "element": "C", "position": [ 1.28,  0.42,  0.04] },
+    { "key": "c3", "element": "C", "position": [ 1.02, -0.82, -0.38] },
+    { "key": "c4", "element": "C", "position": [-0.14, -1.18, -0.06] },
+    { "key": "c5", "element": "C", "position": [-1.02, -0.22,  0.34] },
+    { "key": "c6", "element": "C", "position": [-2.16,  0.18,  1.14] },
+    { "key": "o1", "element": "O", "position": [ 0.56,  2.28,  1.20] },
+    { "key": "o2", "element": "O", "position": [ 2.46,  0.78,  0.42] },
+    { "key": "o3", "element": "O", "position": [ 1.82, -1.70, -0.78] },
+    { "key": "o4", "element": "O", "position": [-0.40, -2.32, -0.86] },
+    { "key": "o6", "element": "O", "position": [-3.10, -0.34,  1.78] }
+  ],
+  "bonds": [
+    { "from": "o5", "to": "c1" },
+    { "from": "c1", "to": "c2" },
+    { "from": "c2", "to": "c3" },
+    { "from": "c3", "to": "c4" },
+    { "from": "c4", "to": "c5" },
+    { "from": "c5", "to": "o5" },
+    { "from": "c5", "to": "c6" },
+    { "from": "c1", "to": "o1" },
+    { "from": "c2", "to": "o2" },
+    { "from": "c3", "to": "o3" },
+    { "from": "c4", "to": "o4" },
+    { "from": "c6", "to": "o6" }
+  ],
+  "aromaticRings": []
+}

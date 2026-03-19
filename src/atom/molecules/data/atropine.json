@@ -1,0 +1,75 @@
+{
+  "name": "Atropine",
+  "formula": "C17H23NO3",
+  "positionScale": 0.6,
+  "animation": {
+    "rotationYOffset": -0.18,
+    "rotationSpeed": 0.076,
+    "rotationXBias": 0.24,
+    "rotationXAmplitude": 0.04,
+    "rotationXFrequency": 0.16,
+    "rotationZBias": -0.12,
+    "rotationZAmplitude": 0.024,
+    "rotationZFrequency": 0.11,
+    "floatAmplitude": 0.05,
+    "floatFrequency": 0.34
+  },
+  "atoms": [
+    { "key": "o1",  "element": "O", "position": [-0.3627,  0.3694,  0.8291] },
+    { "key": "o2",  "element": "O", "position": [ 0.6817, -0.5873, -0.9870] },
+    { "key": "o3",  "element": "O", "position": [ 0.7298,  2.9774,  0.2128] },
+    { "key": "n4",  "element": "N", "position": [-4.2700,  0.5499, -0.1920] },
+    { "key": "c5",  "element": "C", "position": [-3.4977, -0.1941, -1.2050] },
+    { "key": "c6",  "element": "C", "position": [-4.0753, -0.2608,  1.0250] },
+    { "key": "c7",  "element": "C", "position": [-3.8296, -1.6658, -0.9353] },
+    { "key": "c8",  "element": "C", "position": [-4.2133, -1.7103,  0.5459] },
+    { "key": "c9",  "element": "C", "position": [-2.0131,  0.1194, -0.9336] },
+    { "key": "c10", "element": "C", "position": [-2.6501,  0.0458,  1.5259] },
+    { "key": "c11", "element": "C", "position": [-1.5755, -0.2876,  0.4814] },
+    { "key": "c12", "element": "C", "position": [-5.6777,  0.7007, -0.5520] },
+    { "key": "c13", "element": "C", "position": [ 0.7053,  0.1329,  0.0029] },
+    { "key": "c14", "element": "C", "position": [ 1.9275,  0.8965,  0.5049] },
+    { "key": "c15", "element": "C", "position": [ 3.2072,  0.1270,  0.2187] },
+    { "key": "c16", "element": "C", "position": [ 1.9529,  2.3125, -0.0882] },
+    { "key": "c17", "element": "C", "position": [ 3.6767, -0.7645,  1.1627] },
+    { "key": "c18", "element": "C", "position": [ 3.8636,  0.3421, -0.9768] },
+    { "key": "c19", "element": "C", "position": [ 4.8510, -1.4701,  0.9004] },
+    { "key": "c20", "element": "C", "position": [ 5.0378, -0.3636, -1.2392] },
+    { "key": "c21", "element": "C", "position": [ 5.5315, -1.2697, -0.3006] }
+  ],
+  "bonds": [
+    { "from": "o1",  "to": "c11" },
+    { "from": "o1",  "to": "c13" },
+    { "from": "o2",  "to": "c13", "order": 2 },
+    { "from": "o3",  "to": "c16" },
+    { "from": "n4",  "to": "c5"  },
+    { "from": "n4",  "to": "c6"  },
+    { "from": "n4",  "to": "c12" },
+    { "from": "c5",  "to": "c7"  },
+    { "from": "c5",  "to": "c9"  },
+    { "from": "c6",  "to": "c8"  },
+    { "from": "c6",  "to": "c10" },
+    { "from": "c7",  "to": "c8"  },
+    { "from": "c9",  "to": "c11" },
+    { "from": "c10", "to": "c11" },
+    { "from": "c13", "to": "c14" },
+    { "from": "c14", "to": "c15" },
+    { "from": "c14", "to": "c16" },
+    { "from": "c15", "to": "c17" },
+    { "from": "c15", "to": "c18" },
+    { "from": "c17", "to": "c19" },
+    { "from": "c18", "to": "c20" },
+    { "from": "c19", "to": "c21" },
+    { "from": "c20", "to": "c21" }
+  ],
+  "aromaticRings": [
+    {
+      "keys": ["c15", "c17", "c19", "c21", "c20", "c18"],
+      "structural": true,
+      "pairs": [
+        { "colorA": "#8fd4ff", "colorB": "#d4f1ff", "speed": 11.5 },
+        { "colorA": "#7fc3ff", "colorB": "#c7ebff", "speed": 10.7 }
+      ]
+    }
+  ]
+}

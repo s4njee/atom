@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import GUI from 'lil-gui'
 import {
   APP_HOTKEYS,
+  EFFECT_PRESETS,
   GUI_DEFAULTS,
   GUI_RANGES,
 } from './config'
@@ -11,13 +12,14 @@ import {
   DEFAULT_VISUALIZATION,
   VISUALIZATION_LABELS,
   VISUALIZATION_VALUE_BY_LABEL,
-} from './visualizations'
+} from './visualizations.jsx'
 
 const VISUALIZATION_NAMES = ATOM_VISUALIZATIONS.map(({ label }) => label)
 
 function AtomGuiControls({
   chromaticAberrationEnabled,
   effectSettings,
+  onApplyPreset,
   sceneSettings,
   setEffectSettings,
   setSceneSettings,
@@ -252,6 +254,11 @@ function AtomGuiControls({
       (value) => updateXraySetting('rimPower', value),
     )
 
+    const presetsFolder = gui.addFolder('Presets')
+    EFFECT_PRESETS.forEach((preset) => {
+      presetsFolder.add({ apply: () => onApplyPreset(preset) }, 'apply').name(preset.label)
+    })
+
     syncGuiDisplayRef.current = () => {
       gui.controllersRecursive().forEach((controller) => controller.updateDisplay())
     }
@@ -283,6 +290,7 @@ function AtomGuiControls({
       gui.destroy()
     }
   }, [
+    onApplyPreset,
     setEffectSettings,
     setSceneSettings,
     setVisualization,

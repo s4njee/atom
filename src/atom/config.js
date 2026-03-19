@@ -52,6 +52,94 @@ export const XRAY_DEFAULTS = {
   rimPower: 2.4,
 }
 
+// ---------------------------------------------------------------------------
+// Named effect presets — each preset overrides a subset of EFFECT_DEFAULTS
+// and SCENE_DEFAULTS. Stored as plain objects so they can be serialised and
+// compared cheaply.
+// ---------------------------------------------------------------------------
+
+export const EFFECT_PRESETS = [
+  {
+    id: 'default',
+    label: 'Default',
+    effect: {
+      bloomEnabled: false,
+      bloomIntensity: 0.72,
+      bloomThreshold: 0.2,
+      bloomSmoothing: 0.26,
+      bloomRadius: 0.46,
+    },
+    scene: {},
+  },
+  {
+    id: 'neon-lab',
+    label: 'Neon Lab',
+    effect: {
+      bloomEnabled: true,
+      bloomIntensity: 1.6,
+      bloomThreshold: 0.08,
+      bloomSmoothing: 0.18,
+      bloomRadius: 0.65,
+    },
+    scene: {
+      ambientIntensity: 0.22,
+      keyLightIntensity: 1.8,
+    },
+  },
+  {
+    id: 'deep-space',
+    label: 'Deep Space',
+    effect: {
+      bloomEnabled: true,
+      bloomIntensity: 0.95,
+      bloomThreshold: 0.14,
+      bloomSmoothing: 0.32,
+      bloomRadius: 0.55,
+    },
+    scene: {
+      fogNear: 8,
+      fogFar: 16,
+      ambientIntensity: 0.18,
+      hemisphereIntensity: 0.6,
+      keyLightIntensity: 1.1,
+    },
+  },
+  {
+    id: 'clinical',
+    label: 'Clinical',
+    effect: {
+      bloomEnabled: false,
+      bloomIntensity: 0.4,
+      bloomThreshold: 0.35,
+      bloomSmoothing: 0.4,
+      bloomRadius: 0.3,
+    },
+    scene: {
+      ambientIntensity: 0.72,
+      hemisphereIntensity: 1.4,
+      keyLightIntensity: 0.9,
+      fillLightIntensity: 0.8,
+    },
+  },
+  {
+    id: 'photorealistic',
+    label: 'Photorealistic',
+    effect: {
+      bloomEnabled: true,
+      bloomIntensity: 0.48,
+      bloomThreshold: 0.28,
+      bloomSmoothing: 0.22,
+      bloomRadius: 0.38,
+    },
+    scene: {
+      ambientIntensity: 0.44,
+      hemisphereIntensity: 1.1,
+      keyLightIntensity: 1.6,
+      fillLightIntensity: 0.6,
+    },
+  },
+]
+
 export const GUI_DEFAULTS = {
   title: 'Atom Controls',
   width: 320,
