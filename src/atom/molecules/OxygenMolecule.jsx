@@ -1,10 +1,15 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { ATOM_SCALES, DoubleBond, Nucleus } from '../core'
+import { ATOM_SCALES, DoubleBond } from '../core'
+import { AtomInstances } from './helpers'
 
 export function OxygenMolecule() {
   const moleculeRef = useRef(null)
   const separation = 1.18
+  const atomDefs = [
+    { key: 'o-left', element: 'O', scale: ATOM_SCALES.O, position: [-separation, 0, 0] },
+    { key: 'o-right', element: 'O', scale: ATOM_SCALES.O, position: [separation, 0, 0] },
+  ]
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime()
@@ -16,8 +21,7 @@ export function OxygenMolecule() {
 
   return (
     <group ref={moleculeRef}>
-      <Nucleus position={[-separation, 0, 0]} scale={ATOM_SCALES.O} />
-      <Nucleus position={[separation, 0, 0]} scale={ATOM_SCALES.O} />
+      <AtomInstances atomDefs={atomDefs} />
       <DoubleBond
         start={[-separation, 0, 0]}
         end={[separation, 0, 0]}

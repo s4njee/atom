@@ -4,11 +4,10 @@ import {
   AromaticRingPair,
   ATOM_SCALES,
   DoubleBond,
-  Nucleus,
   SingleBond,
   StructuralBond,
 } from '../core'
-import { createAtomPositionLookup, getAtomRenderStyle } from './helpers'
+import { AtomInstances, createAtomPositionLookup } from './helpers'
 
 export function CapsaicinMolecule() {
   const moleculeRef = useRef(null)
@@ -79,20 +78,7 @@ export function CapsaicinMolecule() {
 
   return (
     <group ref={moleculeRef}>
-      {atomDefs.map(({ key, element, scale }) => {
-        const atomStyle = getAtomRenderStyle(element)
-
-        return (
-          <Nucleus
-            key={key}
-            position={atoms[key]}
-            scale={scale}
-            color={atomStyle.color}
-            emissive={atomStyle.emissive}
-            emissiveIntensity={atomStyle.emissiveIntensity}
-          />
-        )
-      })}
+      <AtomInstances atomDefs={atomDefs} />
 
       {ringBondDefs.map(([startKey, endKey]) => (
         <StructuralBond

@@ -472,6 +472,44 @@ function createCloudPositions(count = 1200) {
   return positions
 }
 
+function createTrailBuffer(sampleCount, initialX = 0, initialY = 0, initialZ = 0) {
+  const positions = new Float32Array(sampleCount * 3)
+
+  for (let i = 0; i < sampleCount; i += 1) {
+    const stride = i * 3
+    positions[stride] = initialX
+    positions[stride + 1] = initialY
+    positions[stride + 2] = initialZ
+  }
+
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  return { geometry, positions }
+}
+
+function advanceTrailBuffer(trailBuffer, x, y, z) {
+  const { geometry, positions } = trailBuffer
+
+  positions.copyWithin(3, 0, positions.length - 3)
+  positions[0] = x
+  positions[1] = y
+  positions[2] = z
+  geometry.attributes.position.needsUpdate = true
+}
+
+function useTrailBuffer(sampleCount, initialX = 0, initialY = 0, initialZ = 0) {
+  const trailBuffer = useMemo(
+    () => createTrailBuffer(sampleCount, initialX, initialY, initialZ),
+    [sampleCount, initialX, initialY, initialZ],
+  )
+
+  useEffect(() => () => {
+    trailBuffer.geometry.dispose()
+  }, [trailBuffer])
+
+  return trailBuffer
+}
+
 function Electron({
   color = '#66b8ff',
   speed = 6.5,
@@ -483,10 +521,7 @@ function Electron({
   lightIntensity = 0,
 }) {
   const electronRef = useRef(null)
-  const trailRef = useRef(null)
-  const historyRef = useRef(
-    Array.from({ length: 28 }, () => new THREE.Vector3()),
-  )
+  const trailBuffer = useTrailBuffer(28)
 
   useFrame((state) => {
     const wobble = state.clock.getElapsedTime() * speed + phase
@@ -521,20 +556,12 @@ function Electron({
 
     electronRef.current.position.set(px, py, pz)
 
-    const history = historyRef.current
-    const oldest = history.pop()
-    oldest.set(px, py, pz)
-    history.unshift(oldest)
-
-    if (trailRef.current) {
-      trailRef.current.geometry.setFromPoints(history)
-    }
+    advanceTrailBuffer(trailBuffer, px, py, pz)
   })
 
   return (
     <>
-      <line ref={trailRef}>
-        <bufferGeometry />
+      <line geometry={trailBuffer.geometry}>
         <lineBasicMaterial color={color} transparent opacity={0.22} />
       </line>
 
@@ -569,10 +596,7 @@ function Electron({
 
 function SigmaBondElectron({ color = '#a8e0ff', speed = 11.5, phase = 0, lightIntensity = 0 }) {
   const electronRef = useRef(null)
-  const trailRef = useRef(null)
-  const historyRef = useRef(
-    Array.from({ length: 24 }, () => new THREE.Vector3()),
-  )
+  const trailBuffer = useTrailBuffer(24)
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime() * speed + phase
@@ -587,21 +611,12 @@ function SigmaBondElectron({ color = '#a8e0ff', speed = 11.5, phase = 0, lightIn
       Math.sin(t * 3.6) * 0.03
 
     electronRef.current.position.set(px, py, pz)
-
-    const history = historyRef.current
-    const oldest = history.pop()
-    oldest.set(px, py, pz)
-    history.unshift(oldest)
-
-    if (trailRef.current) {
-      trailRef.current.geometry.setFromPoints(history)
-    }
+    advanceTrailBuffer(trailBuffer, px, py, pz)
   })
 
   return (
     <>
-      <line ref={trailRef}>
-        <bufferGeometry />
+      <line geometry={trailBuffer.geometry}>
         <lineBasicMaterial color={color} transparent opacity={0.18} />
       </line>
 
@@ -800,10 +815,7 @@ function BondElectron({
   lightIntensity = 0,
 }) {
   const electronRef = useRef(null)
-  const trailRef = useRef(null)
-  const historyRef = useRef(
-    Array.from({ length: 24 }, () => new THREE.Vector3()),
-  )
+  const trailBuffer = useTrailBuffer(24)
   const startVec = new THREE.Vector3(...start)
   const endVec = new THREE.Vector3(...end)
   const midpoint = startVec.clone().add(endVec).multiplyScalar(0.5)
@@ -830,21 +842,12 @@ function BondElectron({
       .addScaledVector(normalB, offsetB)
 
     electronRef.current.position.copy(position)
-
-    const history = historyRef.current
-    const oldest = history.pop()
-    oldest.copy(position)
-    history.unshift(oldest)
-
-    if (trailRef.current) {
-      trailRef.current.geometry.setFromPoints(history)
-    }
+    advanceTrailBuffer(trailBuffer, position.x, position.y, position.z)
   })
 
   return (
     <>
-      <line ref={trailRef}>
-        <bufferGeometry />
+      <line geometry={trailBuffer.geometry}>
         <lineBasicMaterial color={color} transparent opacity={0.16} />
       </line>
 
@@ -928,10 +931,7 @@ function AromaticRingElectron({
   lightIntensity = 0,
 }) {
   const electronRef = useRef(null)
-  const trailRef = useRef(null)
-  const historyRef = useRef(
-    Array.from({ length: 36 }, () => new THREE.Vector3()),
-  )
+  const trailBuffer = useTrailBuffer(36)
   const curve = new THREE.CatmullRomCurve3(
     ringPoints.map((point) => new THREE.Vector3(...point)),
     true,
@@ -968,21 +968,12 @@ function AromaticRingElectron({
       .add(tangent.multiplyScalar(Math.sin(t * 3.3 + phase * Math.PI * 2) * 0.02))
 
     electronRef.current.position.copy(position)
-
-    const history = historyRef.current
-    const oldest = history.pop()
-    oldest.copy(position)
-    history.unshift(oldest)
-
-    if (trailRef.current) {
-      trailRef.current.geometry.setFromPoints(history)
-    }
+    advanceTrailBuffer(trailBuffer, position.x, position.y, position.z)
   })
 
   return (
     <>
-      <line ref={trailRef}>
-        <bufferGeometry />
+      <line geometry={trailBuffer.geometry}>
         <lineBasicMaterial color={color} transparent opacity={0.18} />
       </line>
 
@@ -1102,10 +1093,7 @@ function SingleBond({
 
 function PiBondElectron({ sign = 1, color = '#8fd0ff', speed = 12, phase = 0, lightIntensity = 0 }) {
   const electronRef = useRef(null)
-  const trailRef = useRef(null)
-  const historyRef = useRef(
-    Array.from({ length: 26 }, () => new THREE.Vector3(0, sign * 0.55, 0)),
-  )
+  const trailBuffer = useTrailBuffer(26, 0, sign * 0.55, 0)
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime() * speed + phase
@@ -1116,21 +1104,12 @@ function PiBondElectron({ sign = 1, color = '#8fd0ff', speed = 12, phase = 0, li
     )
 
     electronRef.current.position.copy(position)
-
-    const history = historyRef.current
-    const oldest = history.pop()
-    oldest.copy(position)
-    history.unshift(oldest)
-
-    if (trailRef.current) {
-      trailRef.current.geometry.setFromPoints(history)
-    }
+    advanceTrailBuffer(trailBuffer, position.x, position.y, position.z)
   })
 
   return (
     <>
-      <line ref={trailRef}>
-        <bufferGeometry />
+      <line geometry={trailBuffer.geometry}>
         <lineBasicMaterial color={color} transparent opacity={0.18} />
       </line>
 
@@ -1236,6 +1215,7 @@ function DoubleBond({
 export {
   ATOM_SCALES,
   BUCKMINSTERFULLERENE,
+  advanceTrailBuffer,
   ElectronPair,
   Nucleus,
   SigmaBondCloud,
@@ -1250,4 +1230,6 @@ export {
   OrbitalCloud,
   isEditableTarget,
   createXrayMaterialController,
+  createTrailBuffer,
+  useTrailBuffer,
 }

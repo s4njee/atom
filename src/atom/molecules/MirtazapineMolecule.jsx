@@ -3,11 +3,10 @@ import { useFrame } from '@react-three/fiber'
 import {
   AromaticRingPair,
   ATOM_SCALES,
-  Nucleus,
   SingleBond,
   StructuralBond,
 } from '../core'
-import { createAtomPositionLookup, getAtomRenderStyle } from './helpers'
+import { AtomInstances, createAtomPositionLookup } from './helpers'
 
 export function MirtazapineMolecule() {
   const moleculeRef = useRef(null)
@@ -87,20 +86,7 @@ export function MirtazapineMolecule() {
 
   return (
     <group ref={moleculeRef}>
-      {atomDefs.map(({ key, element, scale }) => {
-        const atomStyle = getAtomRenderStyle(element)
-
-        return (
-          <Nucleus
-            key={key}
-            position={atoms[key]}
-            scale={scale}
-            color={atomStyle.color}
-            emissive={atomStyle.emissive}
-            emissiveIntensity={atomStyle.emissiveIntensity}
-          />
-        )
-      })}
+      <AtomInstances atomDefs={atomDefs} />
 
       {ringBondDefs.map(([startKey, endKey]) => (
         <StructuralBond

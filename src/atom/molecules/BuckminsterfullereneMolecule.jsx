@@ -3,14 +3,20 @@ import { useFrame } from '@react-three/fiber'
 import {
   ATOM_SCALES,
   BUCKMINSTERFULLERENE,
-  Nucleus,
   SingleBond,
 } from '../core'
+import { AtomInstances } from './helpers'
 
 export function BuckminsterfullereneMolecule() {
   const moleculeRef = useRef(null)
   const atomPositions = BUCKMINSTERFULLERENE.atomPositions
   const bondDefs = BUCKMINSTERFULLERENE.bonds
+  const atomDefs = atomPositions.map((position, index) => ({
+    key: `c60-${index}`,
+    element: 'C',
+    scale: ATOM_SCALES.C * 0.78,
+    position,
+  }))
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime()
@@ -23,6 +29,8 @@ export function BuckminsterfullereneMolecule() {
 
   return (
     <group ref={moleculeRef}>
+      <AtomInstances atomDefs={atomDefs} />
+
       {bondDefs.map(([startIndex, endIndex], index) => (
         <SingleBond
           key={`electron-${startIndex}-${endIndex}`}
@@ -39,17 +47,6 @@ export function BuckminsterfullereneMolecule() {
             lineScale: 0.21,
             lightIntensity: 0,
           }}
-        />
-      ))}
-
-      {atomPositions.map((position, index) => (
-        <Nucleus
-          key={`c60-${index}`}
-          position={position}
-          scale={ATOM_SCALES.C * 0.78}
-          color="#2e516f"
-          emissive="#1b3550"
-          emissiveIntensity={1.35}
         />
       ))}
     </group>

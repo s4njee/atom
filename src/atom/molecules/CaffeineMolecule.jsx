@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { ATOM_SCALES, DoubleBond, Nucleus, SingleBond } from '../core'
-import { createAtomPositionLookup, getAtomRenderStyle } from './helpers'
+import { ATOM_SCALES, DoubleBond, SingleBond } from '../core'
+import { AtomInstances, createAtomPositionLookup } from './helpers'
 
 export function CaffeineMolecule() {
   const moleculeRef = useRef(null)
@@ -54,20 +54,7 @@ export function CaffeineMolecule() {
 
   return (
     <group ref={moleculeRef}>
-      {atomDefs.map(({ key, element, scale }) => {
-        const atomStyle = getAtomRenderStyle(element)
-
-        return (
-          <Nucleus
-            key={key}
-            position={atoms[key]}
-            scale={scale}
-            color={atomStyle.color}
-            emissive={atomStyle.emissive}
-            emissiveIntensity={atomStyle.emissiveIntensity}
-          />
-        )
-      })}
+      <AtomInstances atomDefs={atomDefs} />
 
       {bondDefs.map(([startKey, endKey], index) => {
         const bondKey = `${startKey}-${endKey}`

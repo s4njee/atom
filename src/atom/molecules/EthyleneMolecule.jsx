@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { ATOM_SCALES, DoubleBond, Nucleus, SingleBond } from '../core'
+import { ATOM_SCALES, DoubleBond, SingleBond } from '../core'
+import { AtomInstances } from './helpers'
 
 export function EthyleneMolecule() {
   const moleculeRef = useRef(null)
@@ -34,6 +35,16 @@ export function EthyleneMolecule() {
       electronProps: { colorA: '#7fc3ff', colorB: '#a7ddff', speed: 9.4, phase: 2.8 },
     },
   ]
+  const atomDefs = [
+    { key: 'c-left', element: 'C', scale: ATOM_SCALES.C, position: carbonLeft },
+    { key: 'c-right', element: 'C', scale: ATOM_SCALES.C, position: carbonRight },
+    ...hydrogens.map((position, index) => ({
+      key: `h-${index}`,
+      element: 'H',
+      scale: ATOM_SCALES.H,
+      position,
+    })),
+  ]
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime()
@@ -45,31 +56,7 @@ export function EthyleneMolecule() {
 
   return (
     <group ref={moleculeRef}>
-      <Nucleus
-        position={carbonLeft}
-        scale={ATOM_SCALES.C}
-        color="#294866"
-        emissive="#1d3550"
-        emissiveIntensity={1.55}
-      />
-      <Nucleus
-        position={carbonRight}
-        scale={ATOM_SCALES.C}
-        color="#294866"
-        emissive="#1d3550"
-        emissiveIntensity={1.55}
-      />
-
-      {hydrogens.map((position, index) => (
-        <Nucleus
-          key={`h-${index}`}
-          position={position}
-          scale={ATOM_SCALES.H}
-          color="#7ea7c9"
-          emissive="#40607f"
-          emissiveIntensity={0.9}
-        />
-      ))}
+      <AtomInstances atomDefs={atomDefs} />
 
       {singleBondDefs.map(({ start, end, electronProps }, index) => (
         <SingleBond
