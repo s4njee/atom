@@ -1,12 +1,11 @@
 import { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
 import {
   AromaticRingPair,
   ATOM_SCALES,
   SingleBond,
   StructuralBond,
 } from '../core'
-import { AtomInstances, createAtomPositionLookup } from './helpers'
+import { AtomInstances, createAtomPositionLookup, useMoleculeAnimation } from './helpers'
 
 export function EpinephrineMolecule() {
   const moleculeRef = useRef(null)
@@ -53,13 +52,16 @@ export function EpinephrineMolecule() {
     ([startKey, endKey]) => ringKeys.includes(startKey) && ringKeys.includes(endKey),
   )
 
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime()
-
-    moleculeRef.current.rotation.y = -0.22 + t * 0.085
-    moleculeRef.current.rotation.x = Math.sin(t * 0.18) * 0.05
-    moleculeRef.current.rotation.z = 0.34 + Math.sin(t * 0.13) * 0.028
-    moleculeRef.current.position.y = Math.sin(t * 0.38) * 0.05
+  useMoleculeAnimation(moleculeRef, {
+    rotationYOffset: -0.22,
+    rotationSpeed: 0.085,
+    rotationXAmplitude: 0.05,
+    rotationXFrequency: 0.18,
+    rotationZBias: 0.34,
+    rotationZAmplitude: 0.028,
+    rotationZFrequency: 0.13,
+    floatAmplitude: 0.05,
+    floatFrequency: 0.38,
   })
 
   return (

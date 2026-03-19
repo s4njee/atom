@@ -1,5 +1,112 @@
-import { Instance, Instances } from '@react-three/drei'
-import { useMemo } from 'react'
+import { Html, Instance, Instances } from '@react-three/drei'
+import { useFrame } from '@react-three/fiber'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { useAtomRenderMode } from '../render-mode'
+
+// ---------------------------------------------------------------------------
+// Shared idle animation hook
+// ---------------------------------------------------------------------------
+
+/**
+ * Drives the standard molecule idle animation — a gentle Y-axis rotation,
+ * optional X/Z tilts, and a slow sinusoidal float. All params are optional;
+ * defaults reproduce the Caffeine molecule look.
+ *
+ * @param {React.RefObject} ref - ref attached to the molecule <group>
+ * @param {object} [options]
+ */
+function useMoleculeAnimation(ref, {
+  rotationSpeed = 0.09,
+  rotationYOffset = 0,
+  rotationXBias = 0,
+  rotationXAmplitude = 0.04,
+  rotationXFrequency = 0.18,
+  rotationZBias = 0,
+  rotationZAmplitude = 0,
+  rotationZFrequency = 0.12,
+  floatAmplitude = 0.05,
+  floatFrequency = 0.38,
+} = {}) {
+  useFrame((state) => {
+    if (!ref.current) return
+
+    const t = state.clock.getElapsedTime()
+
+    ref.current.rotation.y = rotationYOffset + t * rotationSpeed
+    ref.current.rotation.x = rotationXBias + Math.sin(t * rotationXFrequency) * rotationXAmplitude
+
+    if (rotationZAmplitude !== 0 || rotationZBias !== 0) {
+      ref.current.rotation.z = rotationZBias + Math.sin(t * rotationZFrequency) * rotationZAmplitude
+    }
+
+    ref.current.position.y = Math.sin(t * floatFrequency) * floatAmplitude
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Element data used by the atom-selection tooltip
+// ---------------------------------------------------------------------------
+
+// shells: electrons per shell from innermost outward (for the right-side display)
+const ELEMENT_INFO = {
+  H:  { name: 'Hydrogen',   atomicNumber: 1,  atomicMass: '1.008',  shells: [1] },
+  C:  { name: 'Carbon',     atomicNumber: 6,  atomicMass: '12.011', shells: [2, 4] },
+  N:  { name: 'Nitrogen',   atomicNumber: 7,  atomicMass: '14.007', shells: [2, 5] },
+  O:  { name: 'Oxygen',     atomicNumber: 8,  atomicMass: '15.999', shells: [2, 6] },
+  F:  { name: 'Fluorine',   atomicNumber: 9,  atomicMass: '18.998', shells: [2, 7] },
+  P:  { name: 'Phosphorus', atomicNumber: 15, atomicMass: '30.974', shells: [2, 8, 5] },
+  S:  { name: 'Sulfur',     atomicNumber: 16, atomicMass: '32.06',  shells: [2, 8, 6] },
+  Cl: { name: 'Chlorine',   atomicNumber: 17, atomicMass: '35.45',  shells: [2, 8, 7] },
+  Br: { name: 'Bromine',    atomicNumber: 35, atomicMass: '79.904', shells: [2, 8, 18, 7] },
+  I:  { name: 'Iodine',     atomicNumber: 53, atomicMass: '126.90', shells: [2, 8, 18, 18, 7] },
+}
+
+// ---------------------------------------------------------------------------
+// Atom-selection tooltip — periodic table tile style
+// ---------------------------------------------------------------------------
+
+function AtomTooltip({ element }) {
+  const info  = ELEMENT_INFO[element]
+  const style = ATOM_RENDER_STYLES[element] ?? DEFAULT_ATOM_RENDER_STYLE
+
+  // Use the element's existing render color as the card background, darkened
+  // slightly so text stays legible.
+  const bgColor = style.color
+
+  if (!info) {
+    // Fallback for uncommon elements not in our table
+    return (
+      <div className="atom-tooltip" style={{ '--atom-tile-bg': bgColor }}>
+        <div className="atom-tooltip__symbol">{element}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="atom-tooltip" style={{ '--atom-tile-bg': bgColor }}>
+      {/* Top row: atomic number (left) + electron shells (right) */}
+      <div className="atom-tooltip__top">
+        <span className="atom-tooltip__atomic-number">{info.atomicNumber}</span>
+        <span className="atom-tooltip__shells">
+          {info.shells.map((n, i) => (
+            <span key={i}>{n}</span>
+          ))}
+        </span>
+      </div>
+
+      {/* Large element symbol */}
+      <div className="atom-tooltip__symbol">{element}</div>
+
+      {/* Name + atomic mass */}
+      <div className="atom-tooltip__name">{info.name}</div>
+      <div className="atom-tooltip__mass">{info.atomicMass}</div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Atom render styles
+// ---------------------------------------------------------------------------
 
 // Keep the shared molecule rendering bits in one place so each molecule file
 // can focus on geometry, bonds, and animation.
@@ -10,12 +117,12 @@ const DEFAULT_ATOM_RENDER_STYLE = Object.freeze({
 })
 
 const ATOM_RENDER_STYLES = Object.freeze({
-  C: { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
+  C:  { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
   Cl: { color: '#74c46e', emissive: '#356f2f', emissiveIntensity: 1.35 },
-  H: { color: '#e9f3ff', emissive: '#8fb5d6', emissiveIntensity: 0.9 },
-  N: { color: '#c06aa6', emissive: '#7c3d67', emissiveIntensity: 1.4 },
-  O: { color: '#b44646', emissive: '#7a1f1f', emissiveIntensity: 1.25 },
-  S: { color: '#c8a24f', emissive: '#7e5f1d', emissiveIntensity: 1.3 },
+  H:  { color: '#e9f3ff', emissive: '#8fb5d6', emissiveIntensity: 0.9  },
+  N:  { color: '#c06aa6', emissive: '#7c3d67', emissiveIntensity: 1.4  },
+  O:  { color: '#b44646', emissive: '#7a1f1f', emissiveIntensity: 1.25 },
+  S:  { color: '#c8a24f', emissive: '#7e5f1d', emissiveIntensity: 1.3  },
 })
 
 function createAtomPositionLookup(atomDefs) {
@@ -26,7 +133,42 @@ function getAtomRenderStyle(element) {
   return ATOM_RENDER_STYLES[element] ?? DEFAULT_ATOM_RENDER_STYLE
 }
 
+const BASE_ATOM_SURFACE = Object.freeze({
+  roughness: 0.34,
+  metalness: 0.08,
+  clearcoat: 0.18,
+  clearcoatRoughness: 0.4,
+  reflectivity: 0.34,
+  sheen: 0.04,
+  specularIntensity: 0.28,
+  specularColor: '#cfe6f6',
+})
+
+const CINEMATIC_ATOM_SURFACE = Object.freeze({
+  roughness: 0.2,
+  metalness: 0.18,
+  clearcoat: 0.9,
+  clearcoatRoughness: 0.16,
+  reflectivity: 1,
+  sheen: 0.2,
+  specularIntensity: 1,
+  specularColor: '#f4fbff',
+})
+
+// ---------------------------------------------------------------------------
+// AtomInstances — instanced renderer with hover glow + click selection
+// ---------------------------------------------------------------------------
+
 function AtomInstances({ atomDefs = [] }) {
+  const { cinematicEnabled } = useAtomRenderMode()
+  const [hoveredKey, setHoveredKey] = useState(null)
+  const [selectedAtom, setSelectedAtom] = useState(null)
+  // Track the canvas domElement for cursor changes without useThree at this level
+  const glRef = useRef(null)
+
+  // Group atoms by element/style so we can batch them into a single InstancedMesh
+  // per element type. `element` is now included in items so pointer handlers can
+  // reference it without closing over the outer atomDefs array.
   const batches = useMemo(() => {
     const grouped = new Map()
 
@@ -36,43 +178,97 @@ function AtomInstances({ atomDefs = [] }) {
       const existing = grouped.get(batchKey)
 
       if (existing) {
-        existing.items.push({ key, position, scale })
+        existing.items.push({ key, element, position, scale })
         return
       }
 
       grouped.set(batchKey, {
         key: batchKey,
         style,
-        items: [{ key, position, scale }],
+        items: [{ key, element, position, scale }],
       })
     })
 
     return Array.from(grouped.values())
   }, [atomDefs])
 
-  return batches.map(({ key, style, items }) => (
-    <Instances key={key} limit={items.length}>
-      <sphereGeometry args={[1, 16, 16]} />
-      <meshPhysicalMaterial
-        color={style.color}
-        emissive={style.emissive}
-        emissiveIntensity={style.emissiveIntensity}
-        roughness={0.2}
-        metalness={0.18}
-        clearcoat={0.9}
-        clearcoatRoughness={0.16}
-        reflectivity={1}
-        sheen={0.2}
-        sheenColor="#d9f3ff"
-        specularIntensity={1}
-        specularColor="#f4fbff"
-        toneMapped={false}
-      />
-      {items.map(({ key: itemKey, position, scale }) => (
-        <Instance key={itemKey} position={position} scale={scale} />
+  // Clear hover/selection when the molecule unmounts (e.g., switching molecules).
+  // Also restore the cursor in case the pointer was over an atom at unmount time.
+  useState(() => () => {
+    document.body.style.cursor = ''
+  })
+
+  const surface = cinematicEnabled ? CINEMATIC_ATOM_SURFACE : BASE_ATOM_SURFACE
+
+  const handlePointerOver = useCallback((e, atomKey) => {
+    e.stopPropagation()
+    setHoveredKey(atomKey)
+    document.body.style.cursor = 'pointer'
+  }, [])
+
+  const handlePointerOut = useCallback((e, atomKey) => {
+    e.stopPropagation()
+    // Only clear if this atom is actually the one being tracked — prevents a
+    // fast pointer move from clearing a hover that already transferred to a
+    // different atom.
+    setHoveredKey((prev) => (prev === atomKey ? null : prev))
+    document.body.style.cursor = ''
+  }, [])
+
+  const handleClick = useCallback((e, atomKey, element, position) => {
+    e.stopPropagation()
+    // Clicking the already-selected atom deselects it; clicking a new atom selects it.
+    setSelectedAtom((prev) => (prev?.key === atomKey ? null : { key: atomKey, element, position }))
+  }, [])
+
+  return (
+    <>
+      {batches.map(({ key, style, items }) => (
+        <Instances key={key} limit={items.length}>
+          <sphereGeometry args={[1, 16, 16]} />
+          <meshPhysicalMaterial
+            color={style.color}
+            emissive={style.emissive}
+            emissiveIntensity={style.emissiveIntensity}
+            roughness={surface.roughness}
+            metalness={surface.metalness}
+            clearcoat={surface.clearcoat}
+            clearcoatRoughness={surface.clearcoatRoughness}
+            reflectivity={surface.reflectivity}
+            sheen={surface.sheen}
+            sheenColor="#d9f3ff"
+            specularIntensity={surface.specularIntensity}
+            specularColor={surface.specularColor}
+            toneMapped={false}
+          />
+          {items.map(({ key: itemKey, element, position, scale }) => (
+            <Instance
+              key={itemKey}
+              position={position}
+              // Hovering scales the atom up 15% for a tactile focus-glow effect
+              scale={hoveredKey === itemKey ? scale * 1.15 : scale}
+              onPointerOver={(e) => handlePointerOver(e, itemKey)}
+              onPointerOut={(e) => handlePointerOut(e, itemKey)}
+              onClick={(e) => handleClick(e, itemKey, element, position)}
+            />
+          ))}
+        </Instances>
       ))}
-    </Instances>
-  ))
+
+      {/* Tooltip is anchored in 3D world-space and follows the atom as the
+          molecule rotates, because it's rendered inside the same group hierarchy. */}
+      {selectedAtom && (
+        <Html
+          position={selectedAtom.position}
+          center
+          distanceFactor={10}
+          zIndexRange={[100, 0]}
+        >
+          <AtomTooltip element={selectedAtom.element} />
+        </Html>
+      )}
+    </>
+  )
 }
 
 export {
@@ -81,4 +277,5 @@ export {
   DEFAULT_ATOM_RENDER_STYLE,
   createAtomPositionLookup,
   getAtomRenderStyle,
+  useMoleculeAnimation,
 }

@@ -1,5 +1,4 @@
 import { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
 import {
   AromaticRingPair,
   ATOM_SCALES,
@@ -7,7 +6,7 @@ import {
   SingleBond,
   StructuralBond,
 } from '../core'
-import { AtomInstances, createAtomPositionLookup } from './helpers'
+import { AtomInstances, createAtomPositionLookup, useMoleculeAnimation } from './helpers'
 
 export function CapsaicinMolecule() {
   const moleculeRef = useRef(null)
@@ -67,13 +66,16 @@ export function CapsaicinMolecule() {
     ([startKey, endKey]) => ringKeys.includes(startKey) && ringKeys.includes(endKey),
   )
 
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime()
-
-    moleculeRef.current.rotation.y = -0.32 + t * 0.082
-    moleculeRef.current.rotation.x = Math.sin(t * 0.18) * 0.05
-    moleculeRef.current.rotation.z = 0.24 + Math.sin(t * 0.12) * 0.024
-    moleculeRef.current.position.y = Math.sin(t * 0.36) * 0.05
+  useMoleculeAnimation(moleculeRef, {
+    rotationYOffset: -0.32,
+    rotationSpeed: 0.082,
+    rotationXAmplitude: 0.05,
+    rotationXFrequency: 0.18,
+    rotationZBias: 0.24,
+    rotationZAmplitude: 0.024,
+    rotationZFrequency: 0.12,
+    floatAmplitude: 0.05,
+    floatFrequency: 0.36,
   })
 
   return (

@@ -1,11 +1,10 @@
 import { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
 import {
   ATOM_SCALES,
   BUCKMINSTERFULLERENE,
   SingleBond,
 } from '../core'
-import { AtomInstances } from './helpers'
+import { AtomInstances, useMoleculeAnimation } from './helpers'
 
 export function BuckminsterfullereneMolecule() {
   const moleculeRef = useRef(null)
@@ -18,13 +17,16 @@ export function BuckminsterfullereneMolecule() {
     position,
   }))
 
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime()
-
-    moleculeRef.current.rotation.y = 0.18 + t * 0.1
-    moleculeRef.current.rotation.x = 0.42 + Math.sin(t * 0.22) * 0.08
-    moleculeRef.current.rotation.z = Math.sin(t * 0.17) * 0.04
-    moleculeRef.current.position.y = Math.sin(t * 0.36) * 0.05
+  useMoleculeAnimation(moleculeRef, {
+    rotationYOffset: 0.18,
+    rotationSpeed: 0.1,
+    rotationXBias: 0.42,
+    rotationXAmplitude: 0.08,
+    rotationXFrequency: 0.22,
+    rotationZAmplitude: 0.04,
+    rotationZFrequency: 0.17,
+    floatAmplitude: 0.05,
+    floatFrequency: 0.36,
   })
 
   return (

@@ -1,7 +1,6 @@
 import { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
 import { ATOM_SCALES, SingleBond } from '../core'
-import { AtomInstances, createAtomPositionLookup } from './helpers'
+import { AtomInstances, createAtomPositionLookup, useMoleculeAnimation } from './helpers'
 
 export function GlucoseMolecule() {
   const moleculeRef = useRef(null)
@@ -38,13 +37,14 @@ export function GlucoseMolecule() {
     ['c6', 'o6'],
   ]
 
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime()
-
-    moleculeRef.current.rotation.y = t * 0.095
-    moleculeRef.current.rotation.x = Math.sin(t * 0.2) * 0.045
-    moleculeRef.current.rotation.z = Math.sin(t * 0.11) * 0.025
-    moleculeRef.current.position.y = Math.sin(t * 0.4) * 0.05
+  useMoleculeAnimation(moleculeRef, {
+    rotationSpeed: 0.095,
+    rotationXAmplitude: 0.045,
+    rotationXFrequency: 0.2,
+    rotationZAmplitude: 0.025,
+    rotationZFrequency: 0.11,
+    floatAmplitude: 0.05,
+    floatFrequency: 0.4,
   })
 
   return (

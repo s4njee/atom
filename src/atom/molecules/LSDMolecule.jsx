@@ -1,5 +1,4 @@
 import { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
 import {
   AromaticRingPair,
   ATOM_SCALES,
@@ -7,7 +6,7 @@ import {
   SingleBond,
   StructuralBond,
 } from '../core'
-import { AtomInstances, createAtomPositionLookup } from './helpers'
+import { AtomInstances, createAtomPositionLookup, useMoleculeAnimation } from './helpers'
 
 export function LSDMolecule() {
   const moleculeRef = useRef(null)
@@ -85,13 +84,17 @@ export function LSDMolecule() {
     (indoleRingKeys.includes(startKey) && indoleRingKeys.includes(endKey))
   ))
 
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime()
-
-    moleculeRef.current.rotation.y = 0.16 + t * 0.078
-    moleculeRef.current.rotation.x = 0.28 + Math.sin(t * 0.16) * 0.04
-    moleculeRef.current.rotation.z = -0.18 + Math.sin(t * 0.12) * 0.022
-    moleculeRef.current.position.y = Math.sin(t * 0.36) * 0.05
+  useMoleculeAnimation(moleculeRef, {
+    rotationYOffset: 0.16,
+    rotationSpeed: 0.078,
+    rotationXBias: 0.28,
+    rotationXAmplitude: 0.04,
+    rotationXFrequency: 0.16,
+    rotationZBias: -0.18,
+    rotationZAmplitude: 0.022,
+    rotationZFrequency: 0.12,
+    floatAmplitude: 0.05,
+    floatFrequency: 0.36,
   })
 
   return (

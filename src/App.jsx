@@ -1,18 +1,24 @@
 import { Canvas } from '@react-three/fiber'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import './styles.css'
 import {
+  APP_HOTKEYS,
   CAMERA_DEFAULTS,
   EFFECT_DEFAULTS,
   SCENE_DEFAULTS,
   XRAY_DEFAULTS,
 } from './atom/config'
 import { AtomGuiControls } from './atom/gui'
+import { PubChemSearch } from './atom/PubChemSearch'
+import { fetchMolecule } from './atom/pubchem'
 import { AtomScene } from './atom/scene'
 import {
+  applySharedSpecialEffectAction,
   createInitialSharedSpecialEffectState,
   createSharedEffectHotkeyListener,
   createSharedSpecialEffectHandlers,
   isEditableTarget,
+  SHARED_FX_CINEMATIC,
   setSharedChromaticAberrationEnabled,
   setSharedXrayModeEnabled,
 } from '../../../src/shared/special-effects/index.ts'
@@ -24,11 +30,17 @@ import {
 } from './atom/visualizations'
 
 export default function App() {
-  const [visualization, setVisualization] = useState(DEFAULT_VISUALIZATION)
-  const [sceneSettings, setSceneSettings] = useState(SCENE_DEFAULTS)
+  const [visualization, setVisualization]   = useState(DEFAULT_VISUALIZATION)
+  const [sceneSettings, setSceneSettings]   = useState(SCENE_DEFAULTS)
   const [effectSettings, setEffectSettings] = useState(EFFECT_DEFAULTS)
-  const [xraySettings, setXraySettings] = useState(XRAY_DEFAULTS)
+  const [xraySettings, setXraySettings]     = useState(XRAY_DEFAULTS)
   const [specialEffects, setSpecialEffects] = useState(() => createInitialSharedSpecialEffectState())
+
+  // PubChem dynamic molecule state
+  // `dynamicMolecule` overrides the preset visualization when set.
+  const [dynamicMolecule, setDynamicMolecule] = useState(null)
+  const [searchLoading, setSearchLoading]     = useState(false)
+  const [searchError, setSearchError]         = useState(null)
 
   const updateChromaticAberration = (enabled) => {
     setSpecialEffects((current) => setSharedChromaticAberrationEnabled(current, enabled))
@@ -38,6 +50,35 @@ export default function App() {
     setSpecialEffects((current) => setSharedXrayModeEnabled(current, enabled))
   }
 
+  // -------------------------------------------------------------------------
+  // PubChem search handler
+  // -------------------------------------------------------------------------
+
+  const handleSearch = useCallback(async (nameOrCid) => {
+    setSearchLoading(true)
+    setSearchError(null)
+    setDynamicMolecule(null)
+
+    try {
+      const result = await fetchMolecule(nameOrCid)
+      setDynamicMolecule(result)
+    } catch (err) {
+      setSearchError(err.message ?? 'Failed to fetch molecule.')
+    } finally {
+      setSearchLoading(false)
+    }
+  }, [])
+
+  const handleClearSearch = useCallback(() => {
+    setDynamicMolecule(null)
+    setSearchError(null)
+  }, [])
+
+  // -------------------------------------------------------------------------
+  // Keyboard navigation (arrow keys cycle presets; search input is excluded
+  // by isEditableTarget so it can handle its own arrow-key navigation)
+  // -------------------------------------------------------------------------
+
   useEffect(() => {
     const handleSharedEffectHotkey = createSharedEffectHotkeyListener(
       createSharedSpecialEffectHandlers(setSpecialEffects),
@@ -46,13 +87,27 @@ export default function App() {
     const onKeyDown = (event) => {
       if (event.repeat || isEditableTarget(event.target)) return
 
-      // Keep the local molecule switcher separate from the global scene effect hotkeys.
+      if (event.key === APP_HOTKEYS.bloom) {
+        event.preventDefault()
+        const bloomEnabled = specialEffects.currentFx !== SHARED_FX_CINEMATIC
+
+        setEffectSettings((current) => (
+          current.bloomEnabled === bloomEnabled
+            ? current
+            : { ...current, bloomEnabled }
+        ))
+        setSpecialEffects((current) => (
+          applySharedSpecialEffectAction(current, 'cinematic', performance.now() / 1000)
+        ))
+        return
+      }
+
       if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
         event.preventDefault()
-
+        // Arrow keys while a dynamic molecule is shown: clear it and cycle presets
+        if (dynamicMolecule) handleClearSearch()
         const direction = event.key === 'ArrowRight' ? 1 : -1
         setVisualization((current) => getNextVisualization(current, direction))
-
         return
       }
 
@@ -60,17 +115,21 @@ export default function App() {
     }
 
     window.addEventListener('keydown', onKeyDown)
-
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
-  const label = VISUALIZATION_LABELS[visualization] ?? ''
+  }, [specialEffects.currentFx, dynamicMolecule, handleClearSearch])
+
+  // Label shown beneath the molecule
+  const displayLabel = dynamicMolecule
+    ? null // the search pill handles labelling for dynamic molecules
+    : (VISUALIZATION_LABELS[visualization] ?? '')
 
   return (
     <main className="app-shell">
-      {/* The canvas owns the 3D scene; the controls stay outside so they do not rerender the scene tree. */}
+      {/* 3-D scene -------------------------------------------------------- */}
       <Canvas camera={CAMERA_DEFAULTS} gl={{ antialias: true }}>
         <AtomScene
           chromaticAberrationEnabled={specialEffects.chromaticAberrationEnabled}
+          dynamicMolecule={dynamicMolecule}
           effectSettings={effectSettings}
           sceneSettings={sceneSettings}
           specialEffects={specialEffects}
@@ -80,7 +139,16 @@ export default function App() {
         />
       </Canvas>
 
-      {/* Keep the GUI and quick-pick nav decoupled from scene rendering for readability. */}
+      {/* PubChem search bar ---------------------------------------------- */}
+      <PubChemSearch
+        loading={searchLoading}
+        error={searchError}
+        activeMolecule={dynamicMolecule}
+        onSearch={handleSearch}
+        onClear={handleClearSearch}
+      />
+
+      {/* GUI panel -------------------------------------------------------- */}
       <AtomGuiControls
         chromaticAberrationEnabled={specialEffects.chromaticAberrationEnabled}
         effectSettings={effectSettings}
@@ -96,16 +164,24 @@ export default function App() {
         xraySettings={xraySettings}
       />
 
-      {label ? <div className="visualization-label">{label}</div> : null}
+      {/* Preset molecule label ------------------------------------------- */}
+      {displayLabel ? (
+        <div className="visualization-label">{displayLabel}</div>
+      ) : null}
 
+      {/* Preset molecule nav --------------------------------------------- */}
       <div className="visualization-nav">
-        {VISUALIZATION_OPTIONS.map(({ value, label: optionLabel }) => (
+        {VISUALIZATION_OPTIONS.map(({ value, label }) => (
           <button
             key={value}
             type="button"
-            title={optionLabel}
-            className={`visualization-button ${visualization === value ? 'is-active' : ''}`}
-            onClick={() => setVisualization(value)}
+            title={label}
+            className={`visualization-button ${!dynamicMolecule && visualization === value ? 'is-active' : ''}`}
+            onClick={() => {
+              setVisualization(value)
+              // Switching to a preset always clears the dynamic molecule
+              handleClearSearch()
+            }}
           >
             {value}
           </button>

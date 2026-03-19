@@ -1,4 +1,5 @@
 export const APP_HOTKEYS = {
+  bloom: '4',
   chromaticAberration: 'c',
   xrayMode: 'x',
   gui: 'g',
@@ -34,7 +35,7 @@ export const LIGHT_POSITIONS = {
 }
 
 export const EFFECT_DEFAULTS = {
-  bloomEnabled: true,
+  bloomEnabled: false,
   bloomIntensity: 0.72,
   bloomThreshold: 0.2,
   bloomSmoothing: 0.26,

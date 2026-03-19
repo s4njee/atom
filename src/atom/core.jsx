@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { isEditableTarget } from '../../../../src/shared/special-effects/index.ts'
 import { XRAY_DEFAULTS } from './config'
+import { useAtomRenderMode } from './render-mode'
 
 const ORBITAL_SCALE = 0.82
 const ATOM_SCALES = {
@@ -891,6 +892,9 @@ function BondElectronPair({
   spread = 0.12,
   lightIntensity = 10,
 }) {
+  const { bondLightIntensityScale } = useAtomRenderMode()
+  const scaledLightIntensity = lightIntensity * bondLightIntensityScale
+
   // Per-electron point lights are the main GPU-cost lever in the bond system. Treat
   // Atropine as the high-GPU lighting reference when a richer, more luminous bond pass is
   // acceptable. Treat Empagliflozin as the low-GPU reference/preset: prefer dimmer or
@@ -905,7 +909,7 @@ function BondElectronPair({
         phase={phase}
         lineScale={lineScale}
         spread={spread}
-        lightIntensity={lightIntensity}
+        lightIntensity={scaledLightIntensity}
       />
       <BondElectron
         start={start}
@@ -915,7 +919,7 @@ function BondElectronPair({
         phase={phase + Math.PI * 0.78}
         lineScale={lineScale}
         spread={spread * 0.92}
-        lightIntensity={lightIntensity}
+        lightIntensity={scaledLightIntensity}
       />
     </>
   )

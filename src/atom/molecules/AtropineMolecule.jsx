@@ -1,5 +1,4 @@
 import { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
 import {
   AromaticRingPair,
   ATOM_SCALES,
@@ -7,7 +6,7 @@ import {
   SingleBond,
   StructuralBond,
 } from '../core'
-import { AtomInstances, createAtomPositionLookup } from './helpers'
+import { AtomInstances, createAtomPositionLookup, useMoleculeAnimation } from './helpers'
 
 export function AtropineMolecule() {
   const moleculeRef = useRef(null)
@@ -73,13 +72,17 @@ export function AtropineMolecule() {
     ([startKey, endKey]) => phenylRingKeys.includes(startKey) && phenylRingKeys.includes(endKey),
   )
 
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime()
-
-    moleculeRef.current.rotation.y = -0.18 + t * 0.076
-    moleculeRef.current.rotation.x = 0.24 + Math.sin(t * 0.16) * 0.04
-    moleculeRef.current.rotation.z = -0.12 + Math.sin(t * 0.11) * 0.024
-    moleculeRef.current.position.y = Math.sin(t * 0.34) * 0.05
+  useMoleculeAnimation(moleculeRef, {
+    rotationYOffset: -0.18,
+    rotationSpeed: 0.076,
+    rotationXBias: 0.24,
+    rotationXAmplitude: 0.04,
+    rotationXFrequency: 0.16,
+    rotationZBias: -0.12,
+    rotationZAmplitude: 0.024,
+    rotationZFrequency: 0.11,
+    floatAmplitude: 0.05,
+    floatFrequency: 0.34,
   })
 
   return (

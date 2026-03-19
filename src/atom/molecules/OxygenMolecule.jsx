@@ -1,7 +1,6 @@
 import { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
 import { ATOM_SCALES, DoubleBond } from '../core'
-import { AtomInstances } from './helpers'
+import { AtomInstances, useMoleculeAnimation } from './helpers'
 
 export function OxygenMolecule() {
   const moleculeRef = useRef(null)
@@ -11,12 +10,12 @@ export function OxygenMolecule() {
     { key: 'o-right', element: 'O', scale: ATOM_SCALES.O, position: [separation, 0, 0] },
   ]
 
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime()
-
-    moleculeRef.current.rotation.y = t * 0.14
-    moleculeRef.current.rotation.x = Math.sin(t * 0.22) * 0.04
-    moleculeRef.current.position.y = Math.sin(t * 0.5) * 0.08
+  useMoleculeAnimation(moleculeRef, {
+    rotationSpeed: 0.14,
+    rotationXAmplitude: 0.04,
+    rotationXFrequency: 0.22,
+    floatAmplitude: 0.08,
+    floatFrequency: 0.5,
   })
 
   return (

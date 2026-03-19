@@ -1,12 +1,11 @@
 import { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
 import {
   AromaticRingPair,
   ATOM_SCALES,
   SingleBond,
   StructuralBond,
 } from '../core'
-import { AtomInstances, createAtomPositionLookup } from './helpers'
+import { AtomInstances, createAtomPositionLookup, useMoleculeAnimation } from './helpers'
 
 export function MirtazapineMolecule() {
   const moleculeRef = useRef(null)
@@ -75,13 +74,17 @@ export function MirtazapineMolecule() {
     (rightRingKeys.includes(startKey) && rightRingKeys.includes(endKey))
   ))
 
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime()
-
-    moleculeRef.current.rotation.y = -0.2 + t * 0.078
-    moleculeRef.current.rotation.x = 0.22 + Math.sin(t * 0.17) * 0.04
-    moleculeRef.current.rotation.z = -0.14 + Math.sin(t * 0.12) * 0.02
-    moleculeRef.current.position.y = Math.sin(t * 0.34) * 0.05
+  useMoleculeAnimation(moleculeRef, {
+    rotationYOffset: -0.2,
+    rotationSpeed: 0.078,
+    rotationXBias: 0.22,
+    rotationXAmplitude: 0.04,
+    rotationXFrequency: 0.17,
+    rotationZBias: -0.14,
+    rotationZAmplitude: 0.02,
+    rotationZFrequency: 0.12,
+    floatAmplitude: 0.05,
+    floatFrequency: 0.34,
   })
 
   return (

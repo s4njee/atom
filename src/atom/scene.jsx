@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'
 import {
   EFFECT_DEFAULTS,
   LIGHT_POSITIONS,
 } from './config'
 import { createXrayMaterialController } from './core'
+import {
+  AtomRenderModeProvider,
+  DEFAULT_ATOM_RENDER_MODE,
+} from './render-mode'
 import {
   SharedEffectStack,
   SHARED_FX_CINEMATIC,
@@ -14,6 +19,7 @@ import {
   DEFAULT_VISUALIZATION,
   VISUALIZATION_COMPONENTS,
 } from './visualizations'
+import { DynamicMolecule } from './molecules/DynamicMolecule'
 
 function AtomXrayController({ enabled, settings, targetRef }) {
   const controller = useMemo(() => createXrayMaterialController(settings), [])
@@ -83,6 +89,7 @@ function AtomSceneEffects({
 
 function AtomScene({
   chromaticAberrationEnabled,
+  dynamicMolecule,
   effectSettings = EFFECT_DEFAULTS,
   sceneSettings,
   specialEffects,
@@ -92,6 +99,15 @@ function AtomScene({
 }) {
   const moleculeRef = useRef(null)
   const ActiveVisualization = VISUALIZATION_COMPONENTS[visualization] ?? VISUALIZATION_COMPONENTS[DEFAULT_VISUALIZATION]
+  const cinematicEnabled = specialEffects.currentFx === SHARED_FX_CINEMATIC
+  const renderMode = useMemo(() => (
+    cinematicEnabled
+      ? {
+          bondLightIntensityScale: 1,
+          cinematicEnabled: true,
+        }
+      : DEFAULT_ATOM_RENDER_MODE
+  ), [cinematicEnabled])
 
   return (
     <>
@@ -121,9 +137,29 @@ function AtomScene({
         distance={sceneSettings.backLightDistance}
         color={sceneSettings.backLightColor}
       />
-      <group ref={moleculeRef}>
-        <ActiveVisualization />
-      </group>
+      <OrbitControls
+        enableDamping
+        dampingFactor={0.08}
+        enablePan={false}
+        minDistance={3}
+        maxDistance={20}
+        makeDefault
+      />
+      <AtomRenderModeProvider value={renderMode}>
+        <group ref={moleculeRef}>
+          {dynamicMolecule ? (
+            // PubChem-fetched molecule — keyed by CID so React fully unmounts
+            // and remounts when the user searches a different compound.
+            <DynamicMolecule
+              key={dynamicMolecule.cid}
+              atomDefs={dynamicMolecule.atomDefs}
+              bondDefs={dynamicMolecule.bondDefs}
+            />
+          ) : (
+            <ActiveVisualization />
+          )}
+        </group>
+      </AtomRenderModeProvider>
       <AtomSceneEffects
         chromaticAberrationEnabled={chromaticAberrationEnabled}
         effectSettings={effectSettings}

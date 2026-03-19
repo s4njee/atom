@@ -88,3 +88,259 @@ canvas {
   background: rgba(255, 255, 255, 0.25);
   border-color: rgba(255, 255, 255, 0.7);
 }
+
+/* ------------------------------------------------------------------
+   PubChem search bar
+   ------------------------------------------------------------------ */
+
+.pubchem-search {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: min(340px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pubchem-search__field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(3, 9, 20, 0.82);
+  border: 1px solid rgba(90, 160, 255, 0.28);
+  border-radius: 5px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 24px rgba(0, 60, 140, 0.22);
+  transition: border-color 0.15s;
+}
+
+.pubchem-search__field:focus-within {
+  border-color: rgba(90, 160, 255, 0.55);
+  box-shadow: 0 4px 28px rgba(0, 80, 200, 0.28), 0 0 0 1px rgba(80, 140, 255, 0.12);
+}
+
+.pubchem-search__icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-left: 10px;
+  color: rgba(130, 185, 255, 0.45);
+  pointer-events: none;
+}
+
+.pubchem-search__input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 9px 8px 9px 8px;
+  color: #cce8ff;
+  font: 13px/1 "Courier New", monospace;
+  letter-spacing: 0.02em;
+}
+
+.pubchem-search__input::placeholder {
+  color: rgba(120, 175, 230, 0.38);
+}
+
+/* Spinner — simple CSS-only rotating ring */
+.pubchem-search__spinner {
+  flex-shrink: 0;
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin-right: 10px;
+  border: 1.5px solid rgba(80, 150, 255, 0.25);
+  border-top-color: rgba(100, 180, 255, 0.85);
+  border-radius: 50%;
+  animation: pubchem-spin 0.7s linear infinite;
+}
+
+@keyframes pubchem-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Clear (×) button */
+.pubchem-search__clear {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 6px;
+  background: rgba(80, 140, 220, 0.12);
+  border: 1px solid rgba(80, 140, 220, 0.22);
+  border-radius: 3px;
+  color: rgba(160, 210, 255, 0.7);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.pubchem-search__clear:hover {
+  background: rgba(80, 140, 220, 0.22);
+  color: #cce8ff;
+}
+
+/* Active molecule info pill */
+.pubchem-search__pill {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  padding: 5px 10px;
+  background: rgba(3, 9, 20, 0.78);
+  border: 1px solid rgba(70, 130, 210, 0.22);
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+  font-family: "Courier New", monospace;
+}
+
+.pubchem-search__pill-name {
+  font-size: 12px;
+  color: #9ed8ff;
+  font-weight: 600;
+}
+
+.pubchem-search__pill-formula {
+  font-size: 11px;
+  color: rgba(140, 195, 240, 0.65);
+}
+
+.pubchem-search__pill-cid {
+  margin-left: auto;
+  font-size: 10px;
+  color: rgba(100, 165, 220, 0.5);
+  text-decoration: none;
+  transition: color 0.12s;
+}
+
+.pubchem-search__pill-cid:hover {
+  color: rgba(130, 190, 255, 0.85);
+}
+
+/* Error message */
+.pubchem-search__error {
+  padding: 7px 10px;
+  background: rgba(120, 20, 20, 0.72);
+  border: 1px solid rgba(200, 80, 80, 0.35);
+  border-radius: 4px;
+  color: #ffb8b8;
+  font: 11px/1.5 "Courier New", monospace;
+  backdrop-filter: blur(6px);
+}
+
+/* Autocomplete suggestion list */
+.pubchem-search__suggestions {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  background: rgba(3, 9, 20, 0.92);
+  border: 1px solid rgba(70, 130, 210, 0.3);
+  border-radius: 5px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 40, 120, 0.3);
+  overflow: hidden;
+}
+
+.pubchem-search__suggestion {
+  padding: 7px 12px;
+  font: 12px/1 "Courier New", monospace;
+  color: rgba(180, 220, 255, 0.75);
+  cursor: pointer;
+  transition: background 0.08s, color 0.08s;
+}
+
+.pubchem-search__suggestion:hover,
+.pubchem-search__suggestion.is-active {
+  background: rgba(60, 120, 210, 0.18);
+  color: #cce8ff;
+}
+
+/* ------------------------------------------------------------------
+   Atom-selection tooltip — periodic table tile
+   (rendered inside the Canvas via @react-three/drei <Html>)
+   ------------------------------------------------------------------ */
+
+.atom-tooltip {
+  /* The element colour is injected as a CSS variable from the component */
+  --atom-tile-bg: #294866;
+
+  position: relative;
+  width: 110px;
+  min-height: 110px;
+  padding: 8px 9px 10px;
+  background: var(--atom-tile-bg); /* fallback */
+  background: color-mix(in srgb, var(--atom-tile-bg) 70%, #000 30%);
+  border: 2px solid var(--atom-tile-bg); /* fallback */
+  border: 2px solid color-mix(in srgb, var(--atom-tile-bg) 55%, #fff 45%);
+  border-radius: 6px;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  color: rgba(255, 255, 255, 0.92);
+  pointer-events: none;
+  user-select: none;
+  box-shadow:
+    0 6px 28px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* Top row: atomic number left, electron shells right */
+.atom-tooltip__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.atom-tooltip__atomic-number {
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+/* Shells stacked vertically, right-aligned, small */
+.atom-tooltip__shells {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0px;
+  font-size: 9px;
+  font-weight: 500;
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+/* Large element symbol — takes up the middle section */
+.atom-tooltip__symbol {
+  align-self: center;
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-left: -1px;
+}
+
+/* Name and mass sit at the bottom */
+.atom-tooltip__name {
+  font-size: 10.5px;
+  font-weight: 500;
+  opacity: 0.88;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.atom-tooltip__mass {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.68;
+  margin-top: 1px;
+}
