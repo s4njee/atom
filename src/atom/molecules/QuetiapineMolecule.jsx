@@ -7,7 +7,7 @@ import {
   SingleBond,
   StructuralBond,
 } from '../core'
-import { ATOM_RENDER_STYLES, createAtomPositionLookup } from './helpers'
+import { createAtomPositionLookup, getAtomRenderStyle } from './helpers'
 
 export function QuetiapineMolecule() {
   const moleculeRef = useRef(null)
@@ -101,16 +101,20 @@ export function QuetiapineMolecule() {
 
   return (
     <group ref={moleculeRef}>
-      {atomDefs.map(({ key, element, scale }) => (
-        <Nucleus
-          key={key}
-          position={atoms[key]}
-          scale={scale}
-          color={ATOM_RENDER_STYLES[element].color}
-          emissive={ATOM_RENDER_STYLES[element].emissive}
-          emissiveIntensity={ATOM_RENDER_STYLES[element].emissiveIntensity}
-        />
-      ))}
+      {atomDefs.map(({ key, element, scale }) => {
+        const atomStyle = getAtomRenderStyle(element)
+
+        return (
+          <Nucleus
+            key={key}
+            position={atoms[key]}
+            scale={scale}
+            color={atomStyle.color}
+            emissive={atomStyle.emissive}
+            emissiveIntensity={atomStyle.emissiveIntensity}
+          />
+        )
+      })}
 
       {ringBondDefs.map(([startKey, endKey]) => (
         <StructuralBond

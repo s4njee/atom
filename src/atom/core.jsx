@@ -1,6 +1,6 @@
 import { Line } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { isEditableTarget } from '../../../../src/shared/special-effects/index.ts'
 import { XRAY_DEFAULTS } from './config'
@@ -43,6 +43,90 @@ const ELECTRON_TEXTURE = (() => {
   return texture
 })()
 const LOCAL_BOND_AXIS = new THREE.Vector3(1, 0, 0)
+const NUCLEUS_GEOMETRY = new THREE.SphereGeometry(1, 16, 16)
+const NUCLEUS_MATERIAL_CACHE = new Map()
+
+function getNucleusMaterialKey({
+  color,
+  emissive,
+  emissiveIntensity,
+  roughness,
+  metalness,
+  clearcoat,
+  clearcoatRoughness,
+  reflectivity,
+  sheen,
+}) {
+  return [
+    color,
+    emissive,
+    emissiveIntensity,
+    roughness,
+    metalness,
+    clearcoat,
+    clearcoatRoughness,
+    reflectivity,
+    sheen,
+  ].join('|')
+}
+
+function createNucleusMaterial({
+  color,
+  emissive,
+  emissiveIntensity,
+  roughness,
+  metalness,
+  clearcoat,
+  clearcoatRoughness,
+  reflectivity,
+  sheen,
+}) {
+  const material = new THREE.MeshPhysicalMaterial({
+    color,
+    emissive,
+    emissiveIntensity,
+    roughness,
+    metalness,
+    clearcoat,
+    clearcoatRoughness,
+    reflectivity,
+    sheen,
+    sheenColor: '#d9f3ff',
+    specularIntensity: 1,
+    specularColor: '#f4fbff',
+  })
+
+  material.toneMapped = false
+  return material
+}
+
+function acquireNucleusMaterial(materialOptions) {
+  const key = getNucleusMaterialKey(materialOptions)
+  const cached = NUCLEUS_MATERIAL_CACHE.get(key)
+
+  if (cached) {
+    cached.refCount += 1
+    return cached.material
+  }
+
+  const material = createNucleusMaterial(materialOptions)
+  NUCLEUS_MATERIAL_CACHE.set(key, { material, refCount: 1 })
+  return material
+}
+
+function releaseNucleusMaterial(materialOptions) {
+  const key = getNucleusMaterialKey(materialOptions)
+  const cached = NUCLEUS_MATERIAL_CACHE.get(key)
+
+  if (!cached) return
+
+  cached.refCount -= 1
+
+  if (cached.refCount > 0) return
+
+  cached.material.dispose()
+  NUCLEUS_MATERIAL_CACHE.delete(key)
+}
 
 function normalizeXrayConfig(config = {}) {
   return {
@@ -675,25 +759,33 @@ function Nucleus({
   reflectivity = 1,
   sheen = 0.2,
 }) {
+  const materialOptions = {
+    color,
+    emissive,
+    emissiveIntensity,
+    roughness,
+    metalness,
+    clearcoat,
+    clearcoatRoughness,
+    reflectivity,
+    sheen,
+  }
+  const materialKey = getNucleusMaterialKey(materialOptions)
+  const material = useMemo(
+    () => acquireNucleusMaterial(materialOptions),
+    [materialKey],
+  )
+
+  useEffect(() => () => releaseNucleusMaterial(materialOptions), [materialKey])
+
   return (
-    <mesh position={position} scale={scale}>
-      <sphereGeometry args={[1, 16, 16]} />
-      <meshPhysicalMaterial
-        color={color}
-        emissive={emissive}
-        emissiveIntensity={emissiveIntensity}
-        roughness={roughness}
-        metalness={metalness}
-        clearcoat={clearcoat}
-        clearcoatRoughness={clearcoatRoughness}
-        reflectivity={reflectivity}
-        sheen={sheen}
-        sheenColor="#d9f3ff"
-        specularIntensity={1}
-        specularColor="#f4fbff"
-        toneMapped={false}
-      />
-    </mesh>
+    <mesh
+      dispose={null}
+      position={position}
+      scale={scale}
+      geometry={NUCLEUS_GEOMETRY}
+      material={material}
+    />
   )
 }
 
