@@ -1,24 +1,9 @@
+import {
+  DEFAULT_RENDER_SCALE_BY_ELEMENT,
+  atomicNumberToElementSymbol,
+} from '../elements.js'
+
 const MOLECULE_SCHEMA_VERSION = 1
-const DEFAULT_RENDER_SCALE_BY_ELEMENT = Object.freeze({
-  H: 0.09,
-  C: 0.22,
-  N: 0.205,
-  O: 0.19,
-  Cl: 0.245,
-  S: 0.24,
-})
-const ELEMENT_SYMBOLS_BY_ATOMIC_NUMBER = Object.freeze({
-  1: 'H',
-  6: 'C',
-  7: 'N',
-  8: 'O',
-  9: 'F',
-  15: 'P',
-  16: 'S',
-  17: 'Cl',
-  35: 'Br',
-  53: 'I',
-})
 const compiledSchemaCache = new WeakMap()
 
 /**
@@ -58,10 +43,6 @@ const compiledSchemaCache = new WeakMap()
  *   aromaticBondIndices: number[]
  * }} annotations
  */
-
-function atomicNumberToElementSymbol(atomicNumber) {
-  return ELEMENT_SYMBOLS_BY_ATOMIC_NUMBER[atomicNumber] ?? `Z${atomicNumber}`
-}
 
 function getDefaultRenderScale(element, renderScaleByElement = DEFAULT_RENDER_SCALE_BY_ELEMENT) {
   return renderScaleByElement[element] ?? renderScaleByElement.C ?? DEFAULT_RENDER_SCALE_BY_ELEMENT.C

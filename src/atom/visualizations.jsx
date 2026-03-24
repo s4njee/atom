@@ -8,7 +8,6 @@ import { PresetMolecule } from './molecules/PresetMolecule'
 
 // JSON molecule data
 import caffeineData       from './molecules/data/caffeine.json'
-import glucoseData        from './molecules/data/glucose.json'
 import epinephrineData    from './molecules/data/epinephrine.json'
 import atropineData       from './molecules/data/atropine.json'
 import capsaicinData      from './molecules/data/capsaicin.json'
@@ -20,7 +19,6 @@ import empagliflozinData  from './molecules/data/empagliflozin.json'
 // Wrap each JSON dataset in a tiny stable component so the visualizations
 // registry can store component references (not data objects).
 const CaffeineMolecule      = () => <PresetMolecule data={caffeineData} />
-const GlucoseMolecule       = () => <PresetMolecule data={glucoseData} />
 const EpinephrineMolecule   = () => <PresetMolecule data={epinephrineData} />
 const AtropineMolecule      = () => <PresetMolecule data={atropineData} />
 const CapsaicinMolecule     = () => <PresetMolecule data={capsaicinData} />
@@ -42,7 +40,6 @@ const ATOM_VISUALIZATIONS = [
   { value: 10, label: 'lsd',                   component: LSDMolecule },
   { value: 11, label: 'atropine',              component: AtropineMolecule },
   { value: 12, label: 'empagliflozin',         component: EmpagliflozinMolecule },
-  { value: 13, label: 'glucose',               component: GlucoseMolecule },
 ]
 
 const DEFAULT_VISUALIZATION = ATOM_VISUALIZATIONS[0].value

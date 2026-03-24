@@ -4,17 +4,10 @@ import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { isEditableTarget } from '../../../../src/shared/special-effects/index.ts'
 import { XRAY_DEFAULTS } from './config'
+import { ATOM_SCALES } from './elements'
 import { useAtomRenderMode } from './render-mode'
 
 const ORBITAL_SCALE = 0.82
-const ATOM_SCALES = {
-  H: 0.09,
-  C: 0.22,
-  N: 0.205,
-  O: 0.19,
-  Cl: 0.245,
-  S: 0.24,
-}
 const ELECTRON_TEXTURE = (() => {
   const size = 128
   const canvas = document.createElement('canvas')
@@ -46,6 +39,84 @@ const ELECTRON_TEXTURE = (() => {
 const LOCAL_BOND_AXIS = new THREE.Vector3(1, 0, 0)
 const NUCLEUS_GEOMETRY = new THREE.SphereGeometry(1, 16, 16)
 const NUCLEUS_MATERIAL_CACHE = new Map()
+const GPU_TRAIL_VERTEX_SHADER = `
+  attribute float trailProgress;
+
+  uniform float uTime;
+  uniform float uSpeed;
+  uniform float uPhase;
+  uniform float uTrailLag;
+  uniform float uPointSize;
+  uniform float uOpacity;
+  uniform float uMotionProfile;
+  uniform float uSign;
+
+  uniform vec3 uMidpoint;
+  uniform vec3 uAxis;
+  uniform vec3 uNormalA;
+  uniform vec3 uNormalB;
+  uniform float uLength;
+  uniform float uLineScale;
+  uniform float uSpread;
+
+  varying float vAlpha;
+
+  vec3 computeBondTrailPosition(float t) {
+    float along = sin(t * 1.7) * uLength * uLineScale;
+    float offsetA = sin(t * 3.1) * uSpread;
+    float offsetB = cos(t * 2.6) * uSpread * 0.65;
+
+    return uMidpoint
+      + (uAxis * along)
+      + (uNormalA * offsetA)
+      + (uNormalB * offsetB);
+  }
+
+  vec3 computeLocalTrailPosition(float t) {
+    if (uMotionProfile < 0.5) {
+      return vec3(
+        sin(t * 1.8) * 0.86 + sin(t * 3.1) * 0.12,
+        sin(t * 2.4) * 0.14 + cos(t * 4.2) * 0.03,
+        cos(t * 2.1) * 0.12 + sin(t * 3.6) * 0.03
+      );
+    }
+
+    return vec3(
+      sin(t * 1.9) * 0.92 + sin(t * 3.2) * 0.14,
+      uSign * (0.58 + abs(sin(t * 1.4)) * 0.28),
+      cos(t * 2.3) * 0.16 + sin(t * 4.1) * 0.04
+    );
+  }
+
+  void main() {
+    float t = (uTime * uSpeed) + uPhase - (trailProgress * uTrailLag);
+    vec3 position = uMotionProfile < 2.0
+      ? computeLocalTrailPosition(t)
+      : computeBondTrailPosition(t);
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+
+    gl_Position = projectionMatrix * mvPosition;
+    gl_PointSize = mix(uPointSize * 1.2, uPointSize * 0.28, trailProgress);
+    vAlpha = pow(1.0 - trailProgress, 1.35) * uOpacity;
+  }
+`
+const GPU_TRAIL_FRAGMENT_SHADER = `
+  uniform vec3 uColor;
+
+  varying float vAlpha;
+
+  void main() {
+    vec2 centered = gl_PointCoord - vec2(0.5);
+    float distanceFromCenter = length(centered);
+    float falloff = smoothstep(0.5, 0.0, distanceFromCenter);
+    float core = smoothstep(0.18, 0.0, distanceFromCenter);
+    float alpha = vAlpha * (falloff * 0.65 + core * 0.35);
+
+    if (alpha <= 0.001) discard;
+
+    gl_FragColor = vec4(uColor, alpha);
+  }
+`
 
 function getNucleusMaterialKey({
   color,
@@ -488,6 +559,20 @@ function createTrailBuffer(sampleCount, initialX = 0, initialY = 0, initialZ = 0
   return { geometry, positions }
 }
 
+function createGpuTrailGeometry(sampleCount) {
+  const geometry = new THREE.BufferGeometry()
+  const positions = new Float32Array(sampleCount * 3)
+  const trailProgress = new Float32Array(sampleCount)
+
+  for (let i = 0; i < sampleCount; i += 1) {
+    trailProgress[i] = sampleCount <= 1 ? 0 : i / (sampleCount - 1)
+  }
+
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  geometry.setAttribute('trailProgress', new THREE.BufferAttribute(trailProgress, 1))
+  return geometry
+}
+
 function advanceTrailBuffer(trailBuffer, x, y, z) {
   const { geometry, positions } = trailBuffer
 
@@ -509,6 +594,122 @@ function useTrailBuffer(sampleCount, initialX = 0, initialY = 0, initialZ = 0) {
   }, [trailBuffer])
 
   return trailBuffer
+}
+
+function createGpuTrailMaterial({
+  color,
+  opacity,
+  pointSize,
+  speed,
+  phase,
+  trailLag,
+  motionProfile,
+  sign = 1,
+  midpoint = new THREE.Vector3(),
+  axis = new THREE.Vector3(1, 0, 0),
+  normalA = new THREE.Vector3(0, 1, 0),
+  normalB = new THREE.Vector3(0, 0, 1),
+  length = 1,
+  lineScale = 0.34,
+  spread = 0.12,
+}) {
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    uniforms: {
+      uTime: { value: 0 },
+      uColor: { value: new THREE.Color(color) },
+      uOpacity: { value: opacity },
+      uPointSize: { value: pointSize },
+      uSpeed: { value: speed },
+      uPhase: { value: phase },
+      uTrailLag: { value: trailLag },
+      uMotionProfile: { value: motionProfile },
+      uSign: { value: sign },
+      uMidpoint: { value: midpoint.clone() },
+      uAxis: { value: axis.clone() },
+      uNormalA: { value: normalA.clone() },
+      uNormalB: { value: normalB.clone() },
+      uLength: { value: length },
+      uLineScale: { value: lineScale },
+      uSpread: { value: spread },
+    },
+    vertexShader: GPU_TRAIL_VERTEX_SHADER,
+    fragmentShader: GPU_TRAIL_FRAGMENT_SHADER,
+  })
+}
+
+function useGpuTrail({
+  sampleCount,
+  color,
+  opacity,
+  pointSize,
+  speed,
+  phase,
+  trailLag,
+  motionProfile,
+  sign = 1,
+  midpoint,
+  axis,
+  normalA,
+  normalB,
+  length,
+  lineScale,
+  spread,
+}) {
+  const geometry = useMemo(
+    () => createGpuTrailGeometry(sampleCount),
+    [sampleCount],
+  )
+  const material = useMemo(
+    () => createGpuTrailMaterial({
+      color,
+      opacity,
+      pointSize,
+      speed,
+      phase,
+      trailLag,
+      motionProfile,
+      sign,
+      midpoint,
+      axis,
+      normalA,
+      normalB,
+      length,
+      lineScale,
+      spread,
+    }),
+    [
+      axis,
+      color,
+      length,
+      lineScale,
+      midpoint,
+      motionProfile,
+      normalA,
+      normalB,
+      opacity,
+      phase,
+      pointSize,
+      sampleCount,
+      sign,
+      speed,
+      spread,
+      trailLag,
+    ],
+  )
+
+  useEffect(() => () => {
+    geometry.dispose()
+    material.dispose()
+  }, [geometry, material])
+
+  useFrame((state) => {
+    material.uniforms.uTime.value = state.clock.getElapsedTime()
+  })
+
+  return { geometry, material }
 }
 
 function Electron({
@@ -650,6 +851,10 @@ function SigmaBondElectron({ color = '#a8e0ff', speed = 11.5, phase = 0, lightIn
       </group>
     </>
   )
+}
+
+function GpuTrailPoints({ geometry, material }) {
+  return <points geometry={geometry} material={material} />
 }
 
 function SigmaBondPair({ colorA = '#c2ebff', colorB = '#8fd2ff', speedA = 11.8, speedB = 10.9 }) {
@@ -816,7 +1021,6 @@ function BondElectron({
   lightIntensity = 0,
 }) {
   const electronRef = useRef(null)
-  const trailBuffer = useTrailBuffer(24)
   const startVec = new THREE.Vector3(...start)
   const endVec = new THREE.Vector3(...end)
   const midpoint = startVec.clone().add(endVec).multiplyScalar(0.5)
@@ -828,6 +1032,23 @@ function BondElectron({
   const normalA = axis.clone().cross(reference).normalize()
   const normalB = axis.clone().cross(normalA).normalize()
   const positionRef = useRef(new THREE.Vector3())
+  const trail = useGpuTrail({
+    sampleCount: 24,
+    color,
+    opacity: 0.16,
+    pointSize: 11,
+    speed,
+    phase,
+    trailLag: 1.9,
+    motionProfile: 2,
+    midpoint,
+    axis,
+    normalA,
+    normalB,
+    length,
+    lineScale,
+    spread,
+  })
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime() * speed + phase
@@ -843,14 +1064,11 @@ function BondElectron({
       .addScaledVector(normalB, offsetB)
 
     electronRef.current.position.copy(position)
-    advanceTrailBuffer(trailBuffer, position.x, position.y, position.z)
   })
 
   return (
     <>
-      <line geometry={trailBuffer.geometry}>
-        <lineBasicMaterial color={color} transparent opacity={0.16} />
-      </line>
+      <GpuTrailPoints geometry={trail.geometry} material={trail.material} />
 
       <group ref={electronRef}>
         <sprite scale={[0.18, 0.18, 0.18]}>
@@ -1097,7 +1315,17 @@ function SingleBond({
 
 function PiBondElectron({ sign = 1, color = '#8fd0ff', speed = 12, phase = 0, lightIntensity = 0 }) {
   const electronRef = useRef(null)
-  const trailBuffer = useTrailBuffer(26, 0, sign * 0.55, 0)
+  const trail = useGpuTrail({
+    sampleCount: 26,
+    color,
+    opacity: 0.18,
+    pointSize: 11,
+    speed,
+    phase,
+    trailLag: 1.85,
+    motionProfile: 1,
+    sign,
+  })
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime() * speed + phase
@@ -1108,14 +1336,11 @@ function PiBondElectron({ sign = 1, color = '#8fd0ff', speed = 12, phase = 0, li
     )
 
     electronRef.current.position.copy(position)
-    advanceTrailBuffer(trailBuffer, position.x, position.y, position.z)
   })
 
   return (
     <>
-      <line geometry={trailBuffer.geometry}>
-        <lineBasicMaterial color={color} transparent opacity={0.18} />
-      </line>
+      <GpuTrailPoints geometry={trail.geometry} material={trail.material} />
 
       <group ref={electronRef}>
         <sprite scale={[0.19, 0.19, 0.19]}>

@@ -1,6 +1,13 @@
 import { Html, Instance, Instances } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useCallback, useMemo, useRef, useState } from 'react'
+import {
+  ATOM_RENDER_STYLES,
+  DEFAULT_ATOM_RENDER_STYLE,
+  getAtomRenderStyle,
+  getElementInfo,
+} from '../elements'
+import { useAtomInteraction } from '../interaction'
 import { useAtomRenderMode } from '../render-mode'
 
 // ---------------------------------------------------------------------------
@@ -26,11 +33,24 @@ function useMoleculeAnimation(ref, {
   rotationZFrequency = 0.12,
   floatAmplitude = 0.05,
   floatFrequency = 0.38,
+  pauseOnInteraction = true,
 } = {}) {
-  useFrame((state) => {
+  const interactionRef = useAtomInteraction()
+  const animationTimeRef = useRef(0)
+
+  useFrame((_state, delta) => {
     if (!ref.current) return
 
-    const t = state.clock.getElapsedTime()
+    if (pauseOnInteraction) {
+      const interaction = interactionRef.current
+      const pausedByControls = interaction.controlsActive
+      const pausedForIdleWindow = interaction.pauseAnimationUntil > performance.now()
+
+      if (pausedByControls || pausedForIdleWindow) return
+    }
+
+    animationTimeRef.current += delta
+    const t = animationTimeRef.current
 
     ref.current.rotation.y = rotationYOffset + t * rotationSpeed
     ref.current.rotation.x = rotationXBias + Math.sin(t * rotationXFrequency) * rotationXAmplitude
@@ -44,30 +64,12 @@ function useMoleculeAnimation(ref, {
 }
 
 // ---------------------------------------------------------------------------
-// Element data used by the atom-selection tooltip
-// ---------------------------------------------------------------------------
-
-// shells: electrons per shell from innermost outward (for the right-side display)
-const ELEMENT_INFO = {
-  H:  { name: 'Hydrogen',   atomicNumber: 1,  atomicMass: '1.008',  shells: [1] },
-  C:  { name: 'Carbon',     atomicNumber: 6,  atomicMass: '12.011', shells: [2, 4] },
-  N:  { name: 'Nitrogen',   atomicNumber: 7,  atomicMass: '14.007', shells: [2, 5] },
-  O:  { name: 'Oxygen',     atomicNumber: 8,  atomicMass: '15.999', shells: [2, 6] },
-  F:  { name: 'Fluorine',   atomicNumber: 9,  atomicMass: '18.998', shells: [2, 7] },
-  P:  { name: 'Phosphorus', atomicNumber: 15, atomicMass: '30.974', shells: [2, 8, 5] },
-  S:  { name: 'Sulfur',     atomicNumber: 16, atomicMass: '32.06',  shells: [2, 8, 6] },
-  Cl: { name: 'Chlorine',   atomicNumber: 17, atomicMass: '35.45',  shells: [2, 8, 7] },
-  Br: { name: 'Bromine',    atomicNumber: 35, atomicMass: '79.904', shells: [2, 8, 18, 7] },
-  I:  { name: 'Iodine',     atomicNumber: 53, atomicMass: '126.90', shells: [2, 8, 18, 18, 7] },
-}
-
-// ---------------------------------------------------------------------------
 // Atom-selection tooltip — periodic table tile style
 // ---------------------------------------------------------------------------
 
 function AtomTooltip({ element }) {
-  const info  = ELEMENT_INFO[element]
-  const style = ATOM_RENDER_STYLES[element] ?? DEFAULT_ATOM_RENDER_STYLE
+  const info = getElementInfo(element)
+  const style = getAtomRenderStyle(element)
 
   // Use the element's existing render color as the card background, darkened
   // slightly so text stays legible.
@@ -104,33 +106,8 @@ function AtomTooltip({ element }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Atom render styles
-// ---------------------------------------------------------------------------
-
-// Keep the shared molecule rendering bits in one place so each molecule file
-// can focus on geometry, bonds, and animation.
-const DEFAULT_ATOM_RENDER_STYLE = Object.freeze({
-  color: '#4c6174',
-  emissive: '#233445',
-  emissiveIntensity: 1.2,
-})
-
-const ATOM_RENDER_STYLES = Object.freeze({
-  C:  { color: '#294866', emissive: '#1d3550', emissiveIntensity: 1.55 },
-  Cl: { color: '#74c46e', emissive: '#356f2f', emissiveIntensity: 1.35 },
-  H:  { color: '#e9f3ff', emissive: '#8fb5d6', emissiveIntensity: 0.9  },
-  N:  { color: '#c06aa6', emissive: '#7c3d67', emissiveIntensity: 1.4  },
-  O:  { color: '#b44646', emissive: '#7a1f1f', emissiveIntensity: 1.25 },
-  S:  { color: '#c8a24f', emissive: '#7e5f1d', emissiveIntensity: 1.3  },
-})
-
 function createAtomPositionLookup(atomDefs) {
   return Object.fromEntries(atomDefs.map(({ key, position }) => [key, position]))
-}
-
-function getAtomRenderStyle(element) {
-  return ATOM_RENDER_STYLES[element] ?? DEFAULT_ATOM_RENDER_STYLE
 }
 
 const BASE_ATOM_SURFACE = Object.freeze({

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import {
@@ -10,6 +10,10 @@ import {
   AtomRenderModeProvider,
   DEFAULT_ATOM_RENDER_MODE,
 } from './render-mode'
+import {
+  ATOM_INTERACTION_RESUME_DELAY_MS,
+  AtomInteractionProvider,
+} from './interaction'
 import {
   SharedEffectStack,
   SHARED_FX_CINEMATIC,
@@ -98,6 +102,10 @@ function AtomScene({
   xraySettings,
 }) {
   const moleculeRef = useRef(null)
+  const interactionRef = useRef({
+    controlsActive: false,
+    pauseAnimationUntil: 0,
+  })
   const ActiveVisualization = VISUALIZATION_COMPONENTS[visualization] ?? VISUALIZATION_COMPONENTS[DEFAULT_VISUALIZATION]
   const cinematicEnabled = specialEffects.currentFx === SHARED_FX_CINEMATIC
   const renderMode = useMemo(() => (
@@ -108,6 +116,17 @@ function AtomScene({
         }
       : DEFAULT_ATOM_RENDER_MODE
   ), [cinematicEnabled])
+  const handleControlsStart = useCallback(() => {
+    interactionRef.current.controlsActive = true
+    interactionRef.current.pauseAnimationUntil = performance.now() + ATOM_INTERACTION_RESUME_DELAY_MS
+  }, [])
+  const handleControlsChange = useCallback(() => {
+    interactionRef.current.pauseAnimationUntil = performance.now() + ATOM_INTERACTION_RESUME_DELAY_MS
+  }, [])
+  const handleControlsEnd = useCallback(() => {
+    interactionRef.current.controlsActive = false
+    interactionRef.current.pauseAnimationUntil = performance.now() + ATOM_INTERACTION_RESUME_DELAY_MS
+  }, [])
 
   return (
     <>
@@ -144,22 +163,27 @@ function AtomScene({
         minDistance={3}
         maxDistance={20}
         makeDefault
+        onStart={handleControlsStart}
+        onChange={handleControlsChange}
+        onEnd={handleControlsEnd}
       />
-      <AtomRenderModeProvider value={renderMode}>
-        <group ref={moleculeRef}>
-          {dynamicMolecule ? (
-            // PubChem-fetched molecule — keyed by CID so React fully unmounts
-            // and remounts when the user searches a different compound.
-            <DynamicMolecule
-              key={dynamicMolecule.cid}
-              atomDefs={dynamicMolecule.atomDefs}
-              bondDefs={dynamicMolecule.bondDefs}
-            />
-          ) : (
-            <ActiveVisualization />
-          )}
-        </group>
-      </AtomRenderModeProvider>
+      <AtomInteractionProvider value={interactionRef}>
+        <AtomRenderModeProvider value={renderMode}>
+          <group ref={moleculeRef}>
+            {dynamicMolecule ? (
+              // PubChem-fetched molecule — keyed by CID so React fully unmounts
+              // and remounts when the user searches a different compound.
+              <DynamicMolecule
+                key={dynamicMolecule.cid}
+                atomDefs={dynamicMolecule.atomDefs}
+                bondDefs={dynamicMolecule.bondDefs}
+              />
+            ) : (
+              <ActiveVisualization />
+            )}
+          </group>
+        </AtomRenderModeProvider>
+      </AtomInteractionProvider>
       <AtomSceneEffects
         chromaticAberrationEnabled={chromaticAberrationEnabled}
         effectSettings={effectSettings}

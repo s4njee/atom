@@ -8,46 +8,131 @@
  *  - Parsing PubChem's compound JSON into the { atomDefs, bondDefs } schema
  *    used by DynamicMolecule
  *
- * All successful fetches are cached in a module-level Map so switching back
- * to a previously viewed molecule costs zero network requests.
+ * Caching strategy (two tiers):
+ *  1. Module-level Map  — instant in-session lookups (lost on page reload)
+ *  2. localStorage      — persists across sessions with LRU eviction and TTL
+ *
+ * Both caches are keyed by lowercased query AND by "cid:<N>" so that the same
+ * compound fetched under different names (e.g. "aspirin" vs CID 2244) resolves
+ * to a single cached entry.
  */
+
+import { fetchPubChemMoleculeSchema } from './schema/index.js'
+import {
+  ATOM_SCALES,
+  DEFAULT_ATOM_SCALE,
+  atomicNumberToElementSymbol,
+} from './elements.js'
 
 const PUBCHEM_BASE = 'https://pubchem.ncbi.nlm.nih.gov/rest/pug'
 const AUTOCOMPLETE_BASE = 'https://pubchem.ncbi.nlm.nih.gov/rest/autocomplete/compound'
-
-// ---------------------------------------------------------------------------
-// Atom-scale constants (mirroring ATOM_SCALES in core.jsx, kept here so this
-// module has no React dependency and stays independently testable)
-// ---------------------------------------------------------------------------
-
-const ATOM_SCALE_MAP = {
-  H: 0.09,
-  C: 0.22,
-  N: 0.205,
-  O: 0.19,
-  F: 0.16,
-  P: 0.235,
-  S: 0.24,
-  Cl: 0.245,
-  Br: 0.26,
-  I:  0.28,
-}
-const DEFAULT_ATOM_SCALE = 0.22
-
-// Atomic number → element symbol for all elements relevant to organic chemistry
-const ELEMENT_SYMBOLS = {
-  1:  'H',  2:  'He', 3:  'Li', 4:  'Be', 5:  'B',
-  6:  'C',  7:  'N',  8:  'O',  9:  'F',  10: 'Ne',
-  11: 'Na', 12: 'Mg', 13: 'Al', 14: 'Si', 15: 'P',
-  16: 'S',  17: 'Cl', 18: 'Ar', 19: 'K',  20: 'Ca',
-  26: 'Fe', 29: 'Cu', 30: 'Zn', 35: 'Br', 53: 'I',
-}
+const KNOWN_CID_BY_QUERY = Object.freeze({
+  mirtazapine: 4205,
+  quetiapine: 5002,
+})
 
 // ---------------------------------------------------------------------------
 // Module-level result cache  { key → MoleculeResult }
 // ---------------------------------------------------------------------------
 
 const MOLECULE_CACHE = new Map()
+
+// ---------------------------------------------------------------------------
+// localStorage persistence layer
+// ---------------------------------------------------------------------------
+
+/** Storage key prefix — all molecule cache entries live under this namespace. */
+const LS_PREFIX = 'pubchem:'
+
+/** Index key that tracks insertion order for LRU eviction. */
+const LS_INDEX_KEY = 'pubchem:__index__'
+
+/** Maximum number of molecules stored in localStorage. */
+const LS_MAX_ENTRIES = 20
+
+/** Time-to-live for cached entries (7 days in milliseconds). */
+const LS_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+/**
+ * Reads the LRU index from localStorage.
+ * The index is an ordered array of CID strings (oldest first).
+ * Returns [] if the index is missing or corrupt.
+ */
+function readLsIndex() {
+  try {
+    const raw = localStorage.getItem(LS_INDEX_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Writes the LRU index back to localStorage.
+ */
+function writeLsIndex(index) {
+  try {
+    localStorage.setItem(LS_INDEX_KEY, JSON.stringify(index))
+  } catch {
+    // localStorage is full or disabled — silently ignore
+  }
+}
+
+/**
+ * Attempts to load a cached molecule result from localStorage.
+ * Returns null if:
+ *  - the entry doesn't exist
+ *  - the entry has expired (older than LS_TTL_MS)
+ *  - the JSON is corrupt
+ */
+function loadFromLocalStorage(cid) {
+  try {
+    const raw = localStorage.getItem(`${LS_PREFIX}${cid}`)
+    if (!raw) return null
+
+    const entry = JSON.parse(raw)
+
+    // Check TTL — discard stale entries
+    if (Date.now() - entry.timestamp > LS_TTL_MS) {
+      localStorage.removeItem(`${LS_PREFIX}${cid}`)
+      return null
+    }
+
+    return entry.data
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Saves a molecule result to localStorage with LRU eviction.
+ *
+ * The eviction strategy:
+ *  1. If the CID already exists in the index, move it to the end (most recent).
+ *  2. If the index exceeds LS_MAX_ENTRIES, remove the oldest entry (front).
+ *  3. Write the entry and updated index.
+ */
+function saveToLocalStorage(cid, data) {
+  try {
+    const entry = { timestamp: Date.now(), data }
+    localStorage.setItem(`${LS_PREFIX}${cid}`, JSON.stringify(entry))
+
+    // Update the LRU index — move this CID to the end (most recently used)
+    const index = readLsIndex().filter((id) => id !== String(cid))
+    index.push(String(cid))
+
+    // Evict oldest entries if we exceed the cap
+    while (index.length > LS_MAX_ENTRIES) {
+      const evicted = index.shift()
+      localStorage.removeItem(`${LS_PREFIX}${evicted}`)
+    }
+
+    writeLsIndex(index)
+  } catch {
+    // localStorage is full or disabled — silently ignore.
+    // The in-memory cache still works.
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Geometry helpers
@@ -126,11 +211,11 @@ function parseCompound(compound) {
   const scaledPositions = centerAndScale(rawPositions)
 
   const atomDefs = atoms.aid.map((aid, i) => {
-    const element = ELEMENT_SYMBOLS[atoms.element[i]] ?? 'C'
+    const element = atomicNumberToElementSymbol(atoms.element[i]) ?? 'C'
     return {
       key:      `a${aid}`,
       element,
-      scale:    ATOM_SCALE_MAP[element] ?? DEFAULT_ATOM_SCALE,
+      scale:    ATOM_SCALES[element] ?? DEFAULT_ATOM_SCALE,
       position: scaledPositions[i],
     }
   })
@@ -174,7 +259,13 @@ async function fetchAutocomplete(query) {
 
 /**
  * Resolves `nameOrCid` (a compound name string, or a numeric CID) to a
- * full molecule result and caches it.
+ * full molecule result and caches it in both the in-memory Map and
+ * localStorage.
+ *
+ * Lookup order:
+ *  1. In-memory Map (instant, current session only)
+ *  2. localStorage   (persistent across sessions, with TTL + LRU eviction)
+ *  3. PubChem API    (network fetch, result is cached in both tiers)
  *
  * Returns: { cid, name, formula, atomDefs, bondDefs }
  * Throws a user-readable Error string on failure.
@@ -183,6 +274,7 @@ async function fetchMolecule(nameOrCid) {
   const trimmed = String(nameOrCid).trim()
   const cacheKey = trimmed.toLowerCase()
 
+  // --- Tier 1: in-memory cache ---
   if (MOLECULE_CACHE.has(cacheKey)) return MOLECULE_CACHE.get(cacheKey)
 
   // Determine whether we were given a CID directly
@@ -195,20 +287,33 @@ async function fetchMolecule(nameOrCid) {
     cid = Number(trimmed)
     displayName = `CID ${cid}`
   } else {
-    // Resolve name → CID
-    const cidRes = await fetch(
-      `${PUBCHEM_BASE}/compound/name/${encodeURIComponent(trimmed)}/cids/JSON`,
-    )
-    if (!cidRes.ok) throw new Error(`"${trimmed}" was not found in PubChem.`)
+    cid = KNOWN_CID_BY_QUERY[cacheKey]
 
-    const cidData = await cidRes.json()
-    cid = cidData.IdentifierList?.CID?.[0]
+    if (!cid) {
+      // Resolve name → CID
+      const cidRes = await fetch(
+        `${PUBCHEM_BASE}/compound/name/${encodeURIComponent(trimmed)}/cids/JSON`,
+      )
+
+      if (!cidRes.ok) {
+        try {
+          const fallbackSchema = await fetchPubChemMoleculeSchema(trimmed)
+          cid = fallbackSchema.source.cid
+        } catch {
+          throw new Error(`"${trimmed}" was not found in PubChem.`)
+        }
+      } else {
+        const cidData = await cidRes.json()
+        cid = cidData.IdentifierList?.CID?.[0]
+      }
+    }
+
     if (!cid) throw new Error(`No compound matched "${trimmed}".`)
     displayName = trimmed
   }
 
-  // Check cache by CID in case the same compound was previously fetched under
-  // a different name key
+  // Check in-memory cache by CID in case the same compound was previously
+  // fetched under a different name key
   const cidKey = `cid:${cid}`
   if (MOLECULE_CACHE.has(cidKey)) {
     const cached = MOLECULE_CACHE.get(cidKey)
@@ -216,6 +321,16 @@ async function fetchMolecule(nameOrCid) {
     return cached
   }
 
+  // --- Tier 2: localStorage cache ---
+  const lsCached = loadFromLocalStorage(cid)
+  if (lsCached) {
+    // Populate in-memory cache and return
+    MOLECULE_CACHE.set(cacheKey, lsCached)
+    MOLECULE_CACHE.set(cidKey, lsCached)
+    return lsCached
+  }
+
+  // --- Tier 3: network fetch ---
   // Fetch 3D conformer + properties in parallel
   const [conformerRes, propRes] = await Promise.all([
     fetch(`${PUBCHEM_BASE}/compound/cid/${cid}/JSON?record_type=3d`),
@@ -250,8 +365,10 @@ async function fetchMolecule(nameOrCid) {
     bondDefs: parsed.bondDefs,
   }
 
+  // Populate both cache tiers
   MOLECULE_CACHE.set(cacheKey, result)
   MOLECULE_CACHE.set(cidKey, result)
+  saveToLocalStorage(cid, result)
 
   return result
 }
