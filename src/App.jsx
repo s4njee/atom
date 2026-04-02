@@ -1,4 +1,3 @@
-import { Canvas } from '@react-three/fiber'
 import { useCallback, useEffect, useState } from 'react'
 import './styles.css'
 import {
@@ -22,6 +21,7 @@ import {
   setSharedChromaticAberrationEnabled,
   setSharedXrayModeEnabled,
 } from '../../../src/shared/special-effects/index.ts'
+import SafeCanvas from '../../../src/shared/webgl/SafeCanvas.tsx'
 import {
   DEFAULT_VISUALIZATION,
   getNextVisualization,
@@ -135,7 +135,11 @@ export default function App() {
   return (
     <main className="app-shell">
       {/* 3-D scene -------------------------------------------------------- */}
-      <Canvas camera={CAMERA_DEFAULTS} gl={{ antialias: true }}>
+      <SafeCanvas
+        camera={CAMERA_DEFAULTS}
+        rendererOptions={{ antialias: true }}
+        sceneLabel="Atom"
+      >
         <AtomScene
           chromaticAberrationEnabled={specialEffects.chromaticAberrationEnabled}
           dynamicMolecule={dynamicMolecule}
@@ -146,7 +150,7 @@ export default function App() {
           xrayMode={specialEffects.xrayMode}
           xraySettings={xraySettings}
         />
-      </Canvas>
+      </SafeCanvas>
 
       {/* PubChem search bar ---------------------------------------------- */}
       <PubChemSearch
