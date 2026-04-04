@@ -1,6 +1,6 @@
 # Atom Visualization Roadmap
 
-> Last reviewed: 2026-03-23
+> Last reviewed: 2026-04-03 (audit: no new completions — all open items verified unfinished)
 
 This file tracks the Atom visualization against the original refactor ideas, marks what has already landed, and sorts the remaining work by value and implementation cost.
 
@@ -42,6 +42,8 @@ These ideas exist in some form, but the original goal is only partly met.
   JSON-backed preset molecules and the dynamic `DynamicMolecule` renderer exist, but 12 legacy per-molecule wrapper components remain (Atropine, Buckminsterfullerene, Caffeine, Capsaicin, Empagliflozin, Epinephrine, Ethylene, Glucose, LSD, Mirtazapine, Oxygen, Quetiapine). These all follow the same pattern — import `AtomInstances` + `useMoleculeAnimation` from `helpers`, define an `atomDefs` array, render bonds.
 
   > **📋 TODO (code):** Migrate remaining legacy molecule wrappers to `PresetMolecule` with JSON data files. Each is a mechanical conversion — extract atom/bond definitions into a `.json` file under `molecules/data/`, delete the JSX wrapper.
+  >
+  > **Audit (2026-04-03):** 9 of 12 molecules now have JSON data files (atropine, caffeine, capsaicin, empagliflozin, epinephrine, glucose, lsd, mirtazapine, quetiapine), but all 12 legacy JSX wrappers are still live and exported from `index.jsx`. The 3 without JSON data yet: **Buckminsterfullerene, Ethylene, Oxygen**. Migration is not complete until the JSX wrappers are deleted and `index.jsx` / `visualizations.jsx` point to `PresetMolecule`.
 
 - Separate data layer from React is mostly done:
   structure data now lives outside most render components, but the legacy molecule wrappers above still embed atom/bond definitions inline in JSX.

@@ -7,6 +7,13 @@ import {
 import { PresetMolecule } from './molecules/PresetMolecule'
 
 // JSON molecule data
+// Migration status: 9 of 12 molecules are now JSON-driven via PresetMolecule.
+// The 3 still using legacy JSX wrappers (no JSON data file yet):
+//   - OxygenMolecule
+//   - EthyleneMolecule
+//   - BuckminsterfullereneMolecule
+// TODO: convert the above three to molecules/data/*.json and remove their JSX
+// wrapper files from molecules/ and molecules/index.jsx.
 import caffeineData       from './molecules/data/caffeine.json'
 import epinephrineData    from './molecules/data/epinephrine.json'
 import atropineData       from './molecules/data/atropine.json'
