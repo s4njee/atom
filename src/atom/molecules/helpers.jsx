@@ -1,6 +1,6 @@
 import { Html, Instance, Instances } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ATOM_RENDER_STYLES,
   DEFAULT_ATOM_RENDER_STYLE,
@@ -171,9 +171,11 @@ function AtomInstances({ atomDefs = [] }) {
 
   // Clear hover/selection when the molecule unmounts (e.g., switching molecules).
   // Also restore the cursor in case the pointer was over an atom at unmount time.
-  useState(() => () => {
-    document.body.style.cursor = ''
-  })
+  useEffect(() => {
+    return () => {
+      document.body.style.cursor = ''
+    }
+  }, [])
 
   const surface = cinematicEnabled ? CINEMATIC_ATOM_SURFACE : BASE_ATOM_SURFACE
 
