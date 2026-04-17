@@ -23,6 +23,17 @@ import mirtazapineData    from './molecules/data/mirtazapine.json'
 import quetiapineData     from './molecules/data/quetiapine.json'
 import empagliflozinData  from './molecules/data/empagliflozin.json'
 
+const VISUALIZATION_DATA = {
+  4: caffeineData,
+  5: epinephrineData,
+  7: capsaicinData,
+  8: mirtazapineData,
+  9: quetiapineData,
+  10: lsdData,
+  11: atropineData,
+  12: empagliflozinData,
+}
+
 // Wrap each JSON dataset in a tiny stable component so the visualizations
 // registry can store component references (not data objects).
 const CaffeineMolecule      = () => <PresetMolecule data={caffeineData} />
@@ -72,10 +83,15 @@ function getNextVisualization(currentValue, direction) {
   return ATOM_VISUALIZATIONS[nextIndex].value
 }
 
+function getVisualizationMoleculeData(visualization) {
+  return VISUALIZATION_DATA[visualization] ?? null
+}
+
 export {
   ATOM_VISUALIZATIONS,
   DEFAULT_VISUALIZATION,
   getNextVisualization,
+  getVisualizationMoleculeData,
   VISUALIZATION_COMPONENTS,
   VISUALIZATION_VALUE_BY_LABEL,
   VISUALIZATION_LABELS,

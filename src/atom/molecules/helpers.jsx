@@ -132,12 +132,18 @@ const CINEMATIC_ATOM_SURFACE = Object.freeze({
   specularColor: '#f4fbff',
 })
 
+const DIMMED_PHARMACOPHORE_STYLE = Object.freeze({
+  color: '#1a2a3a',
+  emissive: '#0a1520',
+  emissiveIntensity: 0.4,
+})
+
 // ---------------------------------------------------------------------------
 // AtomInstances — instanced renderer with hover glow + click selection
 // ---------------------------------------------------------------------------
 
 function AtomInstances({ atomDefs = [] }) {
-  const { cinematicEnabled } = useAtomRenderMode()
+  const { cinematicEnabled, pharmacophoreMap } = useAtomRenderMode()
   const [hoveredKey, setHoveredKey] = useState(null)
   const [selectedAtom, setSelectedAtom] = useState(null)
   // Track the canvas domElement for cursor changes without useThree at this level
@@ -150,7 +156,12 @@ function AtomInstances({ atomDefs = [] }) {
     const grouped = new Map()
 
     atomDefs.forEach(({ key, element, position, scale }) => {
-      const style = getAtomRenderStyle(element)
+      const pharma = pharmacophoreMap?.get(key)
+      const style = pharma
+        ? { color: pharma.color, emissive: pharma.emissive, emissiveIntensity: 2.2 }
+        : pharmacophoreMap
+          ? DIMMED_PHARMACOPHORE_STYLE
+          : getAtomRenderStyle(element)
       const batchKey = `${element}|${style.color}|${style.emissive}|${style.emissiveIntensity}`
       const existing = grouped.get(batchKey)
 
@@ -167,7 +178,7 @@ function AtomInstances({ atomDefs = [] }) {
     })
 
     return Array.from(grouped.values())
-  }, [atomDefs])
+  }, [atomDefs, pharmacophoreMap])
 
   // Clear hover/selection when the molecule unmounts (e.g., switching molecules).
   // Also restore the cursor in case the pointer was over an atom at unmount time.

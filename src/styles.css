@@ -49,17 +49,28 @@ canvas {
   text-shadow: 0 1px 4px #000;
 }
 
-.visualization-nav {
+.atom-bottom-controls {
   position: fixed;
-  bottom: 16px;
   left: 50%;
+  bottom: 16px;
   z-index: 10;
+  display: grid;
+  grid-template-columns: minmax(0, 220px) auto minmax(0, 220px);
+  align-items: end;
+  gap: 14px;
+  width: min(calc(100vw - 32px), 980px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.visualization-nav {
+  grid-column: 2;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
   width: min(calc(100vw - 24px), 520px);
-  transform: translateX(-50%);
+  pointer-events: auto;
 }
 
 .visualization-button {
@@ -87,6 +98,54 @@ canvas {
 .visualization-button.is-active {
   background: rgba(255, 255, 255, 0.25);
   border-color: rgba(255, 255, 255, 0.7);
+}
+
+.pharmacophore-legend {
+  grid-column: 1;
+  justify-self: end;
+  align-self: end;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-width: 220px;
+  margin-bottom: 52px;
+  padding: 10px 12px;
+  border: 1px solid rgba(160, 210, 255, 0.24);
+  border-radius: 6px;
+  background: rgba(3, 9, 20, 0.78);
+  color: rgba(225, 245, 255, 0.88);
+  font: 11px/1.2 "Courier New", monospace;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+
+.pharmacophore-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.pharmacophore-legend__dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-shadow: 0 0 10px currentColor;
+}
+
+@media (max-width: 860px) {
+  .atom-bottom-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .pharmacophore-legend {
+    max-width: min(260px, calc(100vw - 32px));
+    margin-bottom: 0;
+  }
 }
 
 /* ------------------------------------------------------------------

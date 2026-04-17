@@ -27,7 +27,9 @@ function AtomGuiControls({
   setVisualization,
   setXraySettings,
   standingWaveSettings,
+  pharmacophoreMode,
   updateChromaticAberration,
+  updatePharmacophoreMode,
   updateXrayMode,
   visualization,
   xrayMode,
@@ -36,6 +38,7 @@ function AtomGuiControls({
   const paramsRef = useRef({
     visualization: VISUALIZATION_LABELS[visualization] ?? VISUALIZATION_LABELS[DEFAULT_VISUALIZATION],
     chromaticAberrationEnabled,
+    pharmacophoreMode,
     xrayMode,
     ...sceneSettings,
     ...effectSettings,
@@ -174,6 +177,10 @@ function AtomGuiControls({
       .add(params, 'chromaticAberrationEnabled')
       .name('Chromatic')
       .onChange((value) => updateChromaticAberration(value))
+    effectsFolder
+      .add(params, 'pharmacophoreMode')
+      .name('Pharmacophore')
+      .onChange((value) => updatePharmacophoreMode(value))
     effectsFolder
       .add(params, 'bloomEnabled')
       .name('Bloom')
@@ -329,6 +336,7 @@ function AtomGuiControls({
     setVisualization,
     setXraySettings,
     updateChromaticAberration,
+    updatePharmacophoreMode,
     updateXrayMode,
   ])
 
@@ -338,6 +346,7 @@ function AtomGuiControls({
       {
         visualization: VISUALIZATION_LABELS[visualization] ?? VISUALIZATION_LABELS[DEFAULT_VISUALIZATION],
         chromaticAberrationEnabled,
+        pharmacophoreMode,
         xrayMode,
       },
       sceneSettings,
@@ -349,6 +358,7 @@ function AtomGuiControls({
   }, [
     chromaticAberrationEnabled,
     effectSettings,
+    pharmacophoreMode,
     sceneSettings,
     standingWaveSettings,
     visualization,

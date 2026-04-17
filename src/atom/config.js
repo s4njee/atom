@@ -2,6 +2,7 @@ export const APP_HOTKEYS = {
   bloom: '4',
   chromaticAberration: 'c',
   xrayMode: 'x',
+  pharmacophore: 'p',
   gui: 'g',
 }
 

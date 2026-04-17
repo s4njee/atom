@@ -99,6 +99,7 @@ function AtomScene({
   sceneSettings,
   specialEffects,
   standingWaveSettings,
+  pharmacophoreMap,
   visualization,
   xrayMode,
   xraySettings,
@@ -110,14 +111,15 @@ function AtomScene({
   })
   const ActiveVisualization = VISUALIZATION_COMPONENTS[visualization] ?? VISUALIZATION_COMPONENTS[DEFAULT_VISUALIZATION]
   const cinematicEnabled = specialEffects.currentFx === SHARED_FX_CINEMATIC
-  const renderMode = useMemo(() => (
-    cinematicEnabled
-      ? {
-          bondLightIntensityScale: 1,
-          cinematicEnabled: true,
-        }
-      : DEFAULT_ATOM_RENDER_MODE
-  ), [cinematicEnabled])
+  const renderMode = useMemo(() => {
+    if (!cinematicEnabled && !pharmacophoreMap) return DEFAULT_ATOM_RENDER_MODE
+
+    return {
+      bondLightIntensityScale: 1,
+      cinematicEnabled,
+      pharmacophoreMap,
+    }
+  }, [cinematicEnabled, pharmacophoreMap])
   const handleControlsStart = useCallback(() => {
     interactionRef.current.controlsActive = true
     interactionRef.current.pauseAnimationUntil = performance.now() + ATOM_INTERACTION_RESUME_DELAY_MS

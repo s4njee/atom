@@ -3,6 +3,7 @@ import { createContext, createElement, useContext } from 'react'
 const DEFAULT_ATOM_RENDER_MODE = Object.freeze({
   bondLightIntensityScale: 1,
   cinematicEnabled: false,
+  pharmacophoreMap: null,
 })
 
 const AtomRenderModeContext = createContext(DEFAULT_ATOM_RENDER_MODE)

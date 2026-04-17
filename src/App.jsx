@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import './styles.css'
 import {
   APP_HOTKEYS,
@@ -11,6 +11,8 @@ import {
 import { AtomGuiControls } from './atom/gui'
 import { PubChemSearch } from './atom/PubChemSearch'
 import { fetchMolecule } from './atom/pubchem'
+import { classifyPharmacophore } from './atom/pharmacophore'
+import { PharmacophoreLegend } from './atom/pharmacophore-legend'
 import { AtomScene } from './atom/scene'
 import {
   applySharedSpecialEffectAction,
@@ -26,6 +28,7 @@ import SafeCanvas from '../../../src/shared/webgl/SafeCanvas.tsx'
 import {
   DEFAULT_VISUALIZATION,
   getNextVisualization,
+  getVisualizationMoleculeData,
   VISUALIZATION_LABELS,
   VISUALIZATION_OPTIONS,
 } from './atom/visualizations'
@@ -37,6 +40,7 @@ export default function App() {
   const [xraySettings, setXraySettings]     = useState(XRAY_DEFAULTS)
   const [standingWaveSettings, setStandingWaveSettings] = useState(STANDING_WAVE_DEFAULTS)
   const [specialEffects, setSpecialEffects] = useState(() => createInitialSharedSpecialEffectState({ chromaticAberrationEnabled: true }))
+  const [pharmacophoreMode, setPharmacophoreModeEnabled] = useState(false)
 
   // PubChem dynamic molecule state
   // `dynamicMolecule` overrides the preset visualization when set.
@@ -60,6 +64,35 @@ export default function App() {
   const updateXrayMode = (enabled) => {
     setSpecialEffects((current) => setSharedXrayModeEnabled(current, enabled))
   }
+
+  const updatePharmacophoreMode = useCallback((enabled) => {
+    setPharmacophoreModeEnabled(enabled)
+
+    if (enabled) {
+      setEffectSettings((current) => (
+        current.bloomEnabled
+          ? { ...current, bloomEnabled: false }
+          : current
+      ))
+    }
+  }, [])
+
+  const pharmacophoreMap = useMemo(() => {
+    if (!pharmacophoreMode || specialEffects.xrayMode) return null
+
+    if (dynamicMolecule) {
+      return classifyPharmacophore(
+        dynamicMolecule.atomDefs,
+        dynamicMolecule.bondDefs,
+        dynamicMolecule.aromaticRings,
+      )
+    }
+
+    const data = getVisualizationMoleculeData(visualization)
+    if (!data) return null
+
+    return classifyPharmacophore(data.atoms, data.bonds, data.aromaticRings)
+  }, [dynamicMolecule, pharmacophoreMode, specialEffects.xrayMode, visualization])
 
   // -------------------------------------------------------------------------
   // PubChem search handler
@@ -113,6 +146,18 @@ export default function App() {
         return
       }
 
+      if (event.key === APP_HOTKEYS.pharmacophore) {
+        event.preventDefault()
+        setEffectSettings((current) => (
+          current.bloomEnabled
+            ? { ...current, bloomEnabled: false }
+            : current
+        ))
+        const enabled = !pharmacophoreMode
+        updatePharmacophoreMode(enabled)
+        return
+      }
+
       if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
         event.preventDefault()
         // Arrow keys while a dynamic molecule is shown: clear it and cycle presets
@@ -127,7 +172,7 @@ export default function App() {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [specialEffects.currentFx, dynamicMolecule, handleClearSearch])
+  }, [specialEffects.currentFx, dynamicMolecule, handleClearSearch, pharmacophoreMode, updatePharmacophoreMode])
 
   // Label shown beneath the molecule
   const displayLabel = dynamicMolecule
@@ -150,6 +195,7 @@ export default function App() {
           sceneSettings={sceneSettings}
           specialEffects={specialEffects}
           standingWaveSettings={standingWaveSettings}
+          pharmacophoreMap={pharmacophoreMap}
           visualization={visualization}
           xrayMode={specialEffects.xrayMode}
           xraySettings={xraySettings}
@@ -177,7 +223,9 @@ export default function App() {
         setVisualization={setVisualization}
         setXraySettings={setXraySettings}
         standingWaveSettings={standingWaveSettings}
+        pharmacophoreMode={pharmacophoreMode}
         updateChromaticAberration={updateChromaticAberration}
+        updatePharmacophoreMode={updatePharmacophoreMode}
         updateXrayMode={updateXrayMode}
         visualization={visualization}
         xrayMode={specialEffects.xrayMode}
@@ -190,22 +238,25 @@ export default function App() {
       ) : null}
 
       {/* Preset molecule nav --------------------------------------------- */}
-      <div className="visualization-nav">
-        {VISUALIZATION_OPTIONS.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            title={label}
-            className={`visualization-button ${!dynamicMolecule && visualization === value ? 'is-active' : ''}`}
-            onClick={() => {
-              setVisualization(value)
-              // Switching to a preset always clears the dynamic molecule
-              handleClearSearch()
-            }}
-          >
-            {value}
-          </button>
-        ))}
+      <div className="atom-bottom-controls">
+        <PharmacophoreLegend pharmacophoreMap={pharmacophoreMap} />
+        <div className="visualization-nav">
+          {VISUALIZATION_OPTIONS.map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              title={label}
+              className={`visualization-button ${!dynamicMolecule && visualization === value ? 'is-active' : ''}`}
+              onClick={() => {
+                setVisualization(value)
+                // Switching to a preset always clears the dynamic molecule
+                handleClearSearch()
+              }}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
       </div>
     </main>
   )
