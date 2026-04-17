@@ -1,4 +1,4 @@
-import { Line } from '@react-three/drei'
+import { Html, Line } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
@@ -40,6 +40,8 @@ const ELECTRON_TEXTURE = (() => {
 const LOCAL_BOND_AXIS = new THREE.Vector3(1, 0, 0)
 const NUCLEUS_GEOMETRY = new THREE.SphereGeometry(1, 16, 16)
 const NUCLEUS_MATERIAL_CACHE = new Map()
+const BLUEPRINT_INK = '#1f4f5a'
+const BLUEPRINT_LINE = '#386d75'
 const GPU_TRAIL_VERTEX_SHADER = `
   attribute float trailProgress;
 
@@ -933,6 +935,7 @@ function OrbitalCloud() {
 }
 
 function ElectronPair({ axis = 'y', lobeTightness = 1 }) {
+  const { blueprintEnabled } = useAtomRenderMode()
   const swapRef = useRef(1)
   const swapTimerRef = useRef(0)
   const swapProgressRef = useRef(1)
@@ -957,6 +960,8 @@ function ElectronPair({ axis = 'y', lobeTightness = 1 }) {
     const swapMix = 1 - (1 - swapProgressRef.current) ** 3
     polarityRef.current = THREE.MathUtils.lerp(-swapRef.current, swapRef.current, swapMix)
   })
+
+  if (blueprintEnabled) return null
 
   return (
     <>
@@ -994,6 +999,7 @@ function Nucleus({
   reflectivity = 1,
   sheen = 0.2,
 }) {
+  const { blueprintEnabled } = useAtomRenderMode()
   const materialOptions = {
     color,
     emissive,
@@ -1012,6 +1018,18 @@ function Nucleus({
   )
 
   useEffect(() => () => releaseNucleusMaterial(materialOptions), [materialKey])
+
+  if (blueprintEnabled) {
+    return (
+      <mesh
+        position={position}
+        scale={scale}
+        geometry={NUCLEUS_GEOMETRY}
+      >
+        <meshBasicMaterial color={BLUEPRINT_INK} wireframe transparent opacity={0.92} />
+      </mesh>
+    )
+  }
 
   return (
     <mesh
@@ -1291,8 +1309,10 @@ function AromaticRingPair({
   speed = 11.5,
   lightIntensity = 10,
 }) {
-  const { bondLightIntensityScale } = useAtomRenderMode()
+  const { blueprintEnabled, bondLightIntensityScale } = useAtomRenderMode()
   const scaledLightIntensity = lightIntensity * bondLightIntensityScale
+
+  if (blueprintEnabled) return null
 
   return (
     <>
@@ -1322,14 +1342,37 @@ function StructuralBond({
   color = '#6eaad8',
   opacity = 0.55,
 }) {
+  const { blueprintEnabled } = useAtomRenderMode()
+  const { midpoint, length } = useMemo(() => {
+    const startVec = new THREE.Vector3(...start)
+    const endVec = new THREE.Vector3(...end)
+
+    return {
+      midpoint: startVec.clone().add(endVec).multiplyScalar(0.5).toArray(),
+      length: startVec.distanceTo(endVec),
+    }
+  }, [start, end])
+
   return (
-    <Line
-      points={[start, end]}
-      color={color}
-      transparent
-      opacity={opacity}
-      lineWidth={1}
-    />
+    <>
+      <Line
+        points={[start, end]}
+        color={blueprintEnabled ? BLUEPRINT_LINE : color}
+        transparent
+        opacity={blueprintEnabled ? 0.86 : opacity}
+        lineWidth={blueprintEnabled ? 1.4 : 1}
+      />
+      {blueprintEnabled ? (
+        <Html
+          position={midpoint}
+          center
+          distanceFactor={12}
+          zIndexRange={[40, 0]}
+        >
+          <span className="blueprint-bond-label">{length.toFixed(2)} Å</span>
+        </Html>
+      ) : null}
+    </>
   )
 }
 
@@ -1356,6 +1399,8 @@ function SingleBond({
   showStructure = true,
   electronProps = {},
 }) {
+  const { blueprintEnabled } = useAtomRenderMode()
+
   return (
     <>
       {showStructure ? (
@@ -1366,11 +1411,13 @@ function SingleBond({
           opacity={opacity}
         />
       ) : null}
-      <BondElectronPair
-        start={start}
-        end={end}
-        {...electronProps}
-      />
+      {!blueprintEnabled ? (
+        <BondElectronPair
+          start={start}
+          end={end}
+          {...electronProps}
+        />
+      ) : null}
     </>
   )
 }
@@ -1467,6 +1514,7 @@ function DoubleBond({
     { sign: -1, colorA: '#6fbfff', colorB: '#9ed9ff', speed: 11.1, phase: Math.PI * 0.7 },
   ],
 }) {
+  const { blueprintEnabled } = useAtomRenderMode()
   // PiBondPair is authored in a local left-to-right bond space, so the helper computes the
   // world-space midpoint/orientation once and reuses that transform for any arbitrary bond.
   const { midpoint, quaternion, length } = getBondTransform(start, end)
@@ -1482,25 +1530,29 @@ function DoubleBond({
           opacity={opacity}
         />
       ) : null}
-      <BondElectronPair
-        start={start}
-        end={end}
-        {...sigmaProps}
-      />
-      <group
-        position={midpoint.toArray()}
-        quaternion={quaternion.toArray()}
-        scale={orbitalScale}
-      >
-        {piPairs.map(({ sign = 1, ...pairProps }, index) => (
-          <PiBondPair
-            // Sign and index keep the key stable when both lobes share the same phase.
-            key={`pi-${sign}-${index}`}
-            sign={sign}
-            {...pairProps}
-          />
-        ))}
-      </group>
+      {!blueprintEnabled ? (
+        <BondElectronPair
+          start={start}
+          end={end}
+          {...sigmaProps}
+        />
+      ) : null}
+      {!blueprintEnabled ? (
+        <group
+          position={midpoint.toArray()}
+          quaternion={quaternion.toArray()}
+          scale={orbitalScale}
+        >
+          {piPairs.map(({ sign = 1, ...pairProps }, index) => (
+            <PiBondPair
+              // Sign and index keep the key stable when both lobes share the same phase.
+              key={`pi-${sign}-${index}`}
+              sign={sign}
+              {...pairProps}
+            />
+          ))}
+        </group>
+      ) : null}
     </>
   )
 }

@@ -41,6 +41,7 @@ export default function App() {
   const [standingWaveSettings, setStandingWaveSettings] = useState(STANDING_WAVE_DEFAULTS)
   const [specialEffects, setSpecialEffects] = useState(() => createInitialSharedSpecialEffectState({ chromaticAberrationEnabled: true }))
   const [pharmacophoreMode, setPharmacophoreModeEnabled] = useState(false)
+  const [blueprintMode, setBlueprintMode] = useState(false)
 
   // PubChem dynamic molecule state
   // `dynamicMolecule` overrides the preset visualization when set.
@@ -67,6 +68,18 @@ export default function App() {
 
   const updatePharmacophoreMode = useCallback((enabled) => {
     setPharmacophoreModeEnabled(enabled)
+
+    if (enabled) {
+      setEffectSettings((current) => (
+        current.bloomEnabled
+          ? { ...current, bloomEnabled: false }
+          : current
+      ))
+    }
+  }, [])
+
+  const updateBlueprintMode = useCallback((enabled) => {
+    setBlueprintMode(enabled)
 
     if (enabled) {
       setEffectSettings((current) => (
@@ -158,6 +171,12 @@ export default function App() {
         return
       }
 
+      if (event.key === APP_HOTKEYS.blueprint) {
+        event.preventDefault()
+        updateBlueprintMode(!blueprintMode)
+        return
+      }
+
       if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
         event.preventDefault()
         // Arrow keys while a dynamic molecule is shown: clear it and cycle presets
@@ -172,7 +191,15 @@ export default function App() {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [specialEffects.currentFx, dynamicMolecule, handleClearSearch, pharmacophoreMode, updatePharmacophoreMode])
+  }, [
+    blueprintMode,
+    specialEffects.currentFx,
+    dynamicMolecule,
+    handleClearSearch,
+    pharmacophoreMode,
+    updateBlueprintMode,
+    updatePharmacophoreMode,
+  ])
 
   // Label shown beneath the molecule
   const displayLabel = dynamicMolecule
@@ -180,7 +207,7 @@ export default function App() {
     : (VISUALIZATION_LABELS[visualization] ?? '')
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell${blueprintMode ? ' is-blueprint' : ''}`}>
       {/* 3-D scene -------------------------------------------------------- */}
       <SafeCanvas
         camera={CAMERA_DEFAULTS}
@@ -190,6 +217,7 @@ export default function App() {
       >
         <AtomScene
           chromaticAberrationEnabled={specialEffects.chromaticAberrationEnabled}
+          blueprintMode={blueprintMode}
           dynamicMolecule={dynamicMolecule}
           effectSettings={effectSettings}
           sceneSettings={sceneSettings}
@@ -201,6 +229,28 @@ export default function App() {
           xraySettings={xraySettings}
         />
       </SafeCanvas>
+
+      {blueprintMode ? (
+        <div className="blueprint-paper-overlay" aria-hidden="true">
+          <div className="blueprint-compass">
+            <span>N</span>
+            <span>E</span>
+            <span>S</span>
+            <span>W</span>
+          </div>
+          <div className="blueprint-stamp">SCHRODINGER BLUEPRINT</div>
+        </div>
+      ) : null}
+
+      <button
+        type="button"
+        className={`blueprint-toggle${blueprintMode ? ' is-active' : ''}`}
+        aria-pressed={blueprintMode}
+        title="Toggle Schrödinger blueprint"
+        onClick={() => updateBlueprintMode(!blueprintMode)}
+      >
+        8
+      </button>
 
       {/* PubChem search bar ---------------------------------------------- */}
       <PubChemSearch
@@ -214,6 +264,7 @@ export default function App() {
       {/* GUI panel -------------------------------------------------------- */}
       <AtomGuiControls
         chromaticAberrationEnabled={specialEffects.chromaticAberrationEnabled}
+        blueprintMode={blueprintMode}
         effectSettings={effectSettings}
         onApplyPreset={handleApplyPreset}
         sceneSettings={sceneSettings}
@@ -224,6 +275,7 @@ export default function App() {
         setXraySettings={setXraySettings}
         standingWaveSettings={standingWaveSettings}
         pharmacophoreMode={pharmacophoreMode}
+        updateBlueprintMode={updateBlueprintMode}
         updateChromaticAberration={updateChromaticAberration}
         updatePharmacophoreMode={updatePharmacophoreMode}
         updateXrayMode={updateXrayMode}

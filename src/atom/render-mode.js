@@ -1,6 +1,7 @@
 import { createContext, createElement, useContext } from 'react'
 
 const DEFAULT_ATOM_RENDER_MODE = Object.freeze({
+  blueprintEnabled: false,
   bondLightIntensityScale: 1,
   cinematicEnabled: false,
   pharmacophoreMap: null,

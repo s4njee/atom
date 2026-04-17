@@ -1,18 +1,13 @@
 import {
-  Atom,
   BuckminsterfullereneMolecule,
-  EthyleneMolecule,
-  OxygenMolecule,
 } from './molecules'
 import { PresetMolecule } from './molecules/PresetMolecule'
 
 // JSON molecule data
-// Migration status: 9 of 12 molecules are now JSON-driven via PresetMolecule.
-// The 3 still using legacy JSX wrappers (no JSON data file yet):
-//   - OxygenMolecule
-//   - EthyleneMolecule
+// Migration status: 8 of 9 visible molecules are JSON-driven via PresetMolecule.
+// The remaining legacy JSX wrapper (no JSON data file yet):
 //   - BuckminsterfullereneMolecule
-// TODO: convert the above three to molecules/data/*.json and remove their JSX
+// TODO: convert the above to molecules/data/*.json and remove its JSX
 // wrapper files from molecules/ and molecules/index.jsx.
 import caffeineData       from './molecules/data/caffeine.json'
 import epinephrineData    from './molecules/data/epinephrine.json'
@@ -24,14 +19,14 @@ import quetiapineData     from './molecules/data/quetiapine.json'
 import empagliflozinData  from './molecules/data/empagliflozin.json'
 
 const VISUALIZATION_DATA = {
-  4: caffeineData,
-  5: epinephrineData,
-  7: capsaicinData,
-  8: mirtazapineData,
-  9: quetiapineData,
-  10: lsdData,
-  11: atropineData,
-  12: empagliflozinData,
+  1: caffeineData,
+  2: epinephrineData,
+  4: capsaicinData,
+  5: mirtazapineData,
+  6: quetiapineData,
+  7: lsdData,
+  8: atropineData,
+  9: empagliflozinData,
 }
 
 // Wrap each JSON dataset in a tiny stable component so the visualizations
@@ -46,18 +41,15 @@ const QuetiapineMolecule    = () => <PresetMolecule data={quetiapineData} />
 const EmpagliflozinMolecule = () => <PresetMolecule data={empagliflozinData} />
 
 const ATOM_VISUALIZATIONS = [
-  { value: 1,  label: 'atom',                  component: Atom },
-  { value: 2,  label: 'oxygen',                component: OxygenMolecule },
-  { value: 3,  label: 'ethylene',              component: EthyleneMolecule },
-  { value: 4,  label: 'caffeine',              component: CaffeineMolecule },
-  { value: 5,  label: 'epinephrine',           component: EpinephrineMolecule },
-  { value: 6,  label: 'buckminsterfullerene',  component: BuckminsterfullereneMolecule },
-  { value: 7,  label: 'capsaicin',             component: CapsaicinMolecule },
-  { value: 8,  label: 'mirtazapine',           component: MirtazapineMolecule },
-  { value: 9,  label: 'quetiapine',            component: QuetiapineMolecule },
-  { value: 10, label: 'lsd',                   component: LSDMolecule },
-  { value: 11, label: 'atropine',              component: AtropineMolecule },
-  { value: 12, label: 'empagliflozin',         component: EmpagliflozinMolecule },
+  { value: 1, label: 'caffeine',              component: CaffeineMolecule },
+  { value: 2, label: 'epinephrine',           component: EpinephrineMolecule },
+  { value: 3, label: 'buckminsterfullerene',  component: BuckminsterfullereneMolecule },
+  { value: 4, label: 'capsaicin',             component: CapsaicinMolecule },
+  { value: 5, label: 'mirtazapine',           component: MirtazapineMolecule },
+  { value: 6, label: 'quetiapine',            component: QuetiapineMolecule },
+  { value: 7, label: 'lsd',                   component: LSDMolecule },
+  { value: 8, label: 'atropine',              component: AtropineMolecule },
+  { value: 9, label: 'empagliflozin',         component: EmpagliflozinMolecule },
 ]
 
 const DEFAULT_VISUALIZATION = ATOM_VISUALIZATIONS[0].value

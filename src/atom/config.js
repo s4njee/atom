@@ -1,5 +1,6 @@
 export const APP_HOTKEYS = {
   bloom: '4',
+  blueprint: '8',
   chromaticAberration: 'c',
   xrayMode: 'x',
   pharmacophore: 'p',
@@ -7,7 +8,7 @@ export const APP_HOTKEYS = {
 }
 
 export const CAMERA_DEFAULTS = {
-  position: [0, 0.2, 8.5],
+  position: [0, 0.2, 12.5],
   fov: 45,
 }
 

@@ -17,6 +17,7 @@ import {
 const VISUALIZATION_NAMES = ATOM_VISUALIZATIONS.map(({ label }) => label)
 
 function AtomGuiControls({
+  blueprintMode,
   chromaticAberrationEnabled,
   effectSettings,
   onApplyPreset,
@@ -28,6 +29,7 @@ function AtomGuiControls({
   setXraySettings,
   standingWaveSettings,
   pharmacophoreMode,
+  updateBlueprintMode,
   updateChromaticAberration,
   updatePharmacophoreMode,
   updateXrayMode,
@@ -37,6 +39,7 @@ function AtomGuiControls({
 }) {
   const paramsRef = useRef({
     visualization: VISUALIZATION_LABELS[visualization] ?? VISUALIZATION_LABELS[DEFAULT_VISUALIZATION],
+    blueprintMode,
     chromaticAberrationEnabled,
     pharmacophoreMode,
     xrayMode,
@@ -173,6 +176,10 @@ function AtomGuiControls({
     )
 
     const effectsFolder = gui.addFolder('Effects')
+    effectsFolder
+      .add(params, 'blueprintMode')
+      .name('Blueprint')
+      .onChange((value) => updateBlueprintMode(value))
     effectsFolder
       .add(params, 'chromaticAberrationEnabled')
       .name('Chromatic')
@@ -335,6 +342,7 @@ function AtomGuiControls({
     setStandingWaveSettings,
     setVisualization,
     setXraySettings,
+    updateBlueprintMode,
     updateChromaticAberration,
     updatePharmacophoreMode,
     updateXrayMode,
@@ -345,6 +353,7 @@ function AtomGuiControls({
       paramsRef.current,
       {
         visualization: VISUALIZATION_LABELS[visualization] ?? VISUALIZATION_LABELS[DEFAULT_VISUALIZATION],
+        blueprintMode,
         chromaticAberrationEnabled,
         pharmacophoreMode,
         xrayMode,
@@ -356,6 +365,7 @@ function AtomGuiControls({
     )
     syncGuiDisplayRef.current()
   }, [
+    blueprintMode,
     chromaticAberrationEnabled,
     effectSettings,
     pharmacophoreMode,

@@ -14,7 +14,7 @@
  */
 
 import { useMemo, useRef } from 'react'
-import { DoubleBond, SingleBond } from '../core'
+import { AromaticRingPair, DoubleBond, SingleBond } from '../core'
 import { AtomInstances, createAtomPositionLookup, useMoleculeAnimation } from './helpers'
 
 // Electron style presets — vary slightly by bond type for visual richness
@@ -42,7 +42,58 @@ const ELECTRON_AROMATIC = {
   lineScale: 0.26,
 }
 
-export function DynamicMolecule({ atomDefs, bondDefs }) {
+const AROMATIC_RING_PAIRS = Object.freeze([
+  Object.freeze({ colorA: '#8fd4ff', colorB: '#d4f1ff', speed: 11.6 }),
+  Object.freeze({ colorA: '#7fc3ff', colorB: '#c7ebff', speed: 10.9 }),
+])
+
+function getCycleKey(cycle) {
+  return [...cycle].sort().join('|')
+}
+
+function detectAromaticRings(atomDefs = [], bondDefs = []) {
+  const atomKeys = new Set(atomDefs.map(({ key }) => key))
+  const graph = new Map()
+
+  const addEdge = (from, to) => {
+    if (!atomKeys.has(from) || !atomKeys.has(to)) return
+    if (!graph.has(from)) graph.set(from, new Set())
+    graph.get(from).add(to)
+  }
+
+  bondDefs.forEach(({ from, to, order }) => {
+    if (order !== 4) return
+    addEdge(from, to)
+    addEdge(to, from)
+  })
+
+  const cycles = new Map()
+
+  const visit = (start, current, path) => {
+    if (path.length > 6) return
+
+    for (const next of graph.get(current) ?? []) {
+      if (next === start && path.length >= 5) {
+        cycles.set(getCycleKey(path), path)
+        continue
+      }
+
+      if (path.includes(next) || path.length === 6) continue
+      visit(start, next, [...path, next])
+    }
+  }
+
+  for (const start of graph.keys()) {
+    visit(start, start, [start])
+  }
+
+  return Array.from(cycles.values()).map((keys) => ({
+    keys,
+    pairs: AROMATIC_RING_PAIRS,
+  }))
+}
+
+export function DynamicMolecule({ atomDefs, bondDefs, aromaticRings = [] }) {
   const moleculeRef = useRef(null)
 
   useMoleculeAnimation(moleculeRef, {
@@ -57,6 +108,10 @@ export function DynamicMolecule({ atomDefs, bondDefs }) {
   const atomPositions = useMemo(
     () => createAtomPositionLookup(atomDefs),
     [atomDefs],
+  )
+  const inferredAromaticRings = useMemo(
+    () => (aromaticRings.length > 0 ? aromaticRings : detectAromaticRings(atomDefs, bondDefs)),
+    [aromaticRings, atomDefs, bondDefs],
   )
 
   return (
@@ -117,6 +172,20 @@ export function DynamicMolecule({ atomDefs, bondDefs }) {
             }}
           />
         )
+      })}
+
+      {inferredAromaticRings.flatMap(({ keys, pairs = [] }, ringIndex) => {
+        const ringPoints = keys.map((key) => atomPositions[key]).filter(Boolean)
+        if (ringPoints.length < 3) return []
+        return pairs.map((pair, pairIndex) => (
+          <AromaticRingPair
+            key={`dynamic-ring-${ringIndex}-${pairIndex}`}
+            ringPoints={ringPoints}
+            colorA={pair.colorA}
+            colorB={pair.colorB}
+            speed={pair.speed}
+          />
+        ))
       })}
     </group>
   )

@@ -1,5 +1,4 @@
 import { Html, Instance, Instances } from '@react-three/drei'
-import { useFrame } from '@react-three/fiber'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ATOM_RENDER_STYLES,
@@ -7,7 +6,6 @@ import {
   getAtomRenderStyle,
   getElementInfo,
 } from '../elements'
-import { useAtomInteraction } from '../interaction'
 import { useAtomRenderMode } from '../render-mode'
 
 // ---------------------------------------------------------------------------
@@ -15,53 +13,13 @@ import { useAtomRenderMode } from '../render-mode'
 // ---------------------------------------------------------------------------
 
 /**
- * Drives the standard molecule idle animation — a gentle Y-axis rotation,
- * optional X/Z tilts, and a slow sinusoidal float. All params are optional;
- * defaults reproduce the Caffeine molecule look.
+ * Kept as a compatibility hook for molecule components that still call it.
+ * Idle animation is intentionally disabled so only OrbitControls moves models.
  *
  * @param {React.RefObject} ref - ref attached to the molecule <group>
  * @param {object} [options]
  */
-function useMoleculeAnimation(ref, {
-  rotationSpeed = 0.09,
-  rotationYOffset = 0,
-  rotationXBias = 0,
-  rotationXAmplitude = 0.04,
-  rotationXFrequency = 0.18,
-  rotationZBias = 0,
-  rotationZAmplitude = 0,
-  rotationZFrequency = 0.12,
-  floatAmplitude = 0.05,
-  floatFrequency = 0.38,
-  pauseOnInteraction = true,
-} = {}) {
-  const interactionRef = useAtomInteraction()
-  const animationTimeRef = useRef(0)
-
-  useFrame((_state, delta) => {
-    if (!ref.current) return
-
-    if (pauseOnInteraction) {
-      const interaction = interactionRef.current
-      const pausedByControls = interaction.controlsActive
-      const pausedForIdleWindow = interaction.pauseAnimationUntil > performance.now()
-
-      if (pausedByControls || pausedForIdleWindow) return
-    }
-
-    animationTimeRef.current += delta
-    const t = animationTimeRef.current
-
-    ref.current.rotation.y = rotationYOffset + t * rotationSpeed
-    ref.current.rotation.x = rotationXBias + Math.sin(t * rotationXFrequency) * rotationXAmplitude
-
-    if (rotationZAmplitude !== 0 || rotationZBias !== 0) {
-      ref.current.rotation.z = rotationZBias + Math.sin(t * rotationZFrequency) * rotationZAmplitude
-    }
-
-    ref.current.position.y = Math.sin(t * floatFrequency) * floatAmplitude
-  })
-}
+function useMoleculeAnimation() {}
 
 // ---------------------------------------------------------------------------
 // Atom-selection tooltip — periodic table tile style
@@ -138,12 +96,18 @@ const DIMMED_PHARMACOPHORE_STYLE = Object.freeze({
   emissiveIntensity: 0.4,
 })
 
+const BLUEPRINT_ATOM_STYLE = Object.freeze({
+  color: '#1f4f5a',
+  emissive: '#1f4f5a',
+  emissiveIntensity: 0,
+})
+
 // ---------------------------------------------------------------------------
 // AtomInstances — instanced renderer with hover glow + click selection
 // ---------------------------------------------------------------------------
 
 function AtomInstances({ atomDefs = [] }) {
-  const { cinematicEnabled, pharmacophoreMap } = useAtomRenderMode()
+  const { blueprintEnabled, cinematicEnabled, pharmacophoreMap } = useAtomRenderMode()
   const [hoveredKey, setHoveredKey] = useState(null)
   const [selectedAtom, setSelectedAtom] = useState(null)
   // Track the canvas domElement for cursor changes without useThree at this level
@@ -157,12 +121,14 @@ function AtomInstances({ atomDefs = [] }) {
 
     atomDefs.forEach(({ key, element, position, scale }) => {
       const pharma = pharmacophoreMap?.get(key)
-      const style = pharma
-        ? { color: pharma.color, emissive: pharma.emissive, emissiveIntensity: 2.2 }
-        : pharmacophoreMap
-          ? DIMMED_PHARMACOPHORE_STYLE
-          : getAtomRenderStyle(element)
-      const batchKey = `${element}|${style.color}|${style.emissive}|${style.emissiveIntensity}`
+      const style = blueprintEnabled
+        ? BLUEPRINT_ATOM_STYLE
+        : pharma
+          ? { color: pharma.color, emissive: pharma.emissive, emissiveIntensity: 2.2 }
+          : pharmacophoreMap
+            ? DIMMED_PHARMACOPHORE_STYLE
+            : getAtomRenderStyle(element)
+      const batchKey = `${blueprintEnabled ? 'blueprint' : element}|${style.color}|${style.emissive}|${style.emissiveIntensity}`
       const existing = grouped.get(batchKey)
 
       if (existing) {
@@ -178,7 +144,7 @@ function AtomInstances({ atomDefs = [] }) {
     })
 
     return Array.from(grouped.values())
-  }, [atomDefs, pharmacophoreMap])
+  }, [atomDefs, blueprintEnabled, pharmacophoreMap])
 
   // Clear hover/selection when the molecule unmounts (e.g., switching molecules).
   // Also restore the cursor in case the pointer was over an atom at unmount time.
@@ -211,32 +177,45 @@ function AtomInstances({ atomDefs = [] }) {
     setSelectedAtom((prev) => (prev?.key === atomKey ? null : { key: atomKey, element, position }))
   }, [])
 
+  const handlePointerMissed = useCallback(() => {
+    setSelectedAtom(null)
+  }, [])
+
   return (
-    <>
+    <group onPointerMissed={handlePointerMissed}>
       {batches.map(({ key, style, items }) => (
         <Instances key={key} limit={items.length}>
           <sphereGeometry args={[1, 16, 16]} />
-          <meshPhysicalMaterial
-            color={style.color}
-            emissive={style.emissive}
-            emissiveIntensity={style.emissiveIntensity}
-            roughness={surface.roughness}
-            metalness={surface.metalness}
-            clearcoat={surface.clearcoat}
-            clearcoatRoughness={surface.clearcoatRoughness}
-            reflectivity={surface.reflectivity}
-            sheen={surface.sheen}
-            sheenColor="#d9f3ff"
-            specularIntensity={surface.specularIntensity}
-            specularColor={surface.specularColor}
-            toneMapped={false}
-          />
+          {blueprintEnabled ? (
+            <meshBasicMaterial
+              color={style.color}
+              wireframe
+              transparent
+              opacity={0.92}
+            />
+          ) : (
+            <meshPhysicalMaterial
+              color={style.color}
+              emissive={style.emissive}
+              emissiveIntensity={style.emissiveIntensity}
+              roughness={surface.roughness}
+              metalness={surface.metalness}
+              clearcoat={surface.clearcoat}
+              clearcoatRoughness={surface.clearcoatRoughness}
+              reflectivity={surface.reflectivity}
+              sheen={surface.sheen}
+              sheenColor="#d9f3ff"
+              specularIntensity={surface.specularIntensity}
+              specularColor={surface.specularColor}
+              toneMapped={false}
+            />
+          )}
           {items.map(({ key: itemKey, element, position, scale }) => (
             <Instance
               key={itemKey}
               position={position}
               // Hovering scales the atom up 15% for a tactile focus-glow effect
-              scale={hoveredKey === itemKey ? scale * 1.15 : scale}
+              scale={(hoveredKey === itemKey ? scale * 1.15 : scale) * (blueprintEnabled ? 1.08 : 1)}
               onPointerOver={(e) => handlePointerOver(e, itemKey)}
               onPointerOut={(e) => handlePointerOut(e, itemKey)}
               onClick={(e) => handleClick(e, itemKey, element, position)}
@@ -245,9 +224,23 @@ function AtomInstances({ atomDefs = [] }) {
         </Instances>
       ))}
 
+      {blueprintEnabled ? (
+        atomDefs.map(({ key, element, position }) => (
+          <Html
+            key={`blueprint-label-${key}`}
+            position={position}
+            center
+            distanceFactor={11}
+            zIndexRange={[50, 0]}
+          >
+            <span className="blueprint-atom-label">{element}</span>
+          </Html>
+        ))
+      ) : null}
+
       {/* Tooltip is anchored in 3D world-space and follows the atom as the
           molecule rotates, because it's rendered inside the same group hierarchy. */}
-      {selectedAtom && (
+      {selectedAtom && !blueprintEnabled && (
         <Html
           position={selectedAtom.position}
           center
@@ -257,7 +250,7 @@ function AtomInstances({ atomDefs = [] }) {
           <AtomTooltip element={selectedAtom.element} />
         </Html>
       )}
-    </>
+    </group>
   )
 }
 

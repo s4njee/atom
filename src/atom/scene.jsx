@@ -55,6 +55,7 @@ function AtomXrayController({ enabled, settings, targetRef }) {
 }
 
 function AtomSceneEffects({
+  blueprintMode,
   chromaticAberrationEnabled,
   effectSettings,
   specialEffects,
@@ -67,12 +68,12 @@ function AtomSceneEffects({
       <AtomXrayController enabled={xrayMode} settings={xraySettings} targetRef={targetRef} />
       <SharedEffectStack
         barrelBlurAmount={0.12}
-        bloomEnabled={effectSettings.bloomEnabled}
+        bloomEnabled={!blueprintMode && effectSettings.bloomEnabled}
         bloomIntensity={effectSettings.bloomIntensity}
         bloomRadius={effectSettings.bloomRadius}
         bloomSmoothing={effectSettings.bloomSmoothing}
         bloomThreshold={effectSettings.bloomThreshold}
-        chromaticAberrationEnabled={chromaticAberrationEnabled}
+        chromaticAberrationEnabled={!blueprintMode && chromaticAberrationEnabled}
         chromaticModulationOffset={effectSettings.chromaticModulationOffset}
         chromaticOffset={effectSettings.chromaticOffset}
         chromaticOscillationSpeed={effectSettings.chromaticOscillationSpeed}
@@ -93,6 +94,7 @@ function AtomSceneEffects({
 }
 
 function AtomScene({
+  blueprintMode = false,
   chromaticAberrationEnabled,
   dynamicMolecule,
   effectSettings = EFFECT_DEFAULTS,
@@ -112,14 +114,15 @@ function AtomScene({
   const ActiveVisualization = VISUALIZATION_COMPONENTS[visualization] ?? VISUALIZATION_COMPONENTS[DEFAULT_VISUALIZATION]
   const cinematicEnabled = specialEffects.currentFx === SHARED_FX_CINEMATIC
   const renderMode = useMemo(() => {
-    if (!cinematicEnabled && !pharmacophoreMap) return DEFAULT_ATOM_RENDER_MODE
+    if (!blueprintMode && !cinematicEnabled && !pharmacophoreMap) return DEFAULT_ATOM_RENDER_MODE
 
     return {
+      blueprintEnabled: blueprintMode,
       bondLightIntensityScale: 1,
       cinematicEnabled,
       pharmacophoreMap,
     }
-  }, [cinematicEnabled, pharmacophoreMap])
+  }, [blueprintMode, cinematicEnabled, pharmacophoreMap])
   const handleControlsStart = useCallback(() => {
     interactionRef.current.controlsActive = true
     interactionRef.current.pauseAnimationUntil = performance.now() + ATOM_INTERACTION_RESUME_DELAY_MS
@@ -134,8 +137,15 @@ function AtomScene({
 
   return (
     <>
-      <color attach="background" args={[sceneSettings.backgroundColor]} />
-      <fog attach="fog" args={[sceneSettings.fogColor, sceneSettings.fogNear, sceneSettings.fogFar]} />
+      <color attach="background" args={[blueprintMode ? '#edf2e9' : sceneSettings.backgroundColor]} />
+      <fog
+        attach="fog"
+        args={[
+          blueprintMode ? '#edf2e9' : sceneSettings.fogColor,
+          blueprintMode ? 14 : sceneSettings.fogNear,
+          blueprintMode ? 28 : sceneSettings.fogFar,
+        ]}
+      />
       <ambientLight intensity={sceneSettings.ambientIntensity} />
       <hemisphereLight
         args={[
@@ -164,8 +174,8 @@ function AtomScene({
         enableDamping
         dampingFactor={0.08}
         enablePan={false}
-        minDistance={3}
-        maxDistance={20}
+        minDistance={4.5}
+        maxDistance={28}
         makeDefault
         onStart={handleControlsStart}
         onChange={handleControlsChange}
@@ -181,6 +191,7 @@ function AtomScene({
                 <DynamicMolecule
                   key={dynamicMolecule.cid}
                   atomDefs={dynamicMolecule.atomDefs}
+                  aromaticRings={dynamicMolecule.aromaticRings}
                   bondDefs={dynamicMolecule.bondDefs}
                 />
               ) : (
@@ -191,6 +202,7 @@ function AtomScene({
         </AtomRenderModeProvider>
       </AtomInteractionProvider>
       <AtomSceneEffects
+        blueprintMode={blueprintMode}
         chromaticAberrationEnabled={chromaticAberrationEnabled}
         effectSettings={effectSettings}
         specialEffects={specialEffects}
