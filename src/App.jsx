@@ -5,6 +5,7 @@ import {
   CAMERA_DEFAULTS,
   EFFECT_DEFAULTS,
   SCENE_DEFAULTS,
+  STANDING_WAVE_DEFAULTS,
   XRAY_DEFAULTS,
 } from './atom/config'
 import { AtomGuiControls } from './atom/gui'
@@ -34,7 +35,8 @@ export default function App() {
   const [sceneSettings, setSceneSettings]   = useState(SCENE_DEFAULTS)
   const [effectSettings, setEffectSettings] = useState(EFFECT_DEFAULTS)
   const [xraySettings, setXraySettings]     = useState(XRAY_DEFAULTS)
-  const [specialEffects, setSpecialEffects] = useState(() => createInitialSharedSpecialEffectState())
+  const [standingWaveSettings, setStandingWaveSettings] = useState(STANDING_WAVE_DEFAULTS)
+  const [specialEffects, setSpecialEffects] = useState(() => createInitialSharedSpecialEffectState({ chromaticAberrationEnabled: true }))
 
   // PubChem dynamic molecule state
   // `dynamicMolecule` overrides the preset visualization when set.
@@ -146,6 +148,7 @@ export default function App() {
           effectSettings={effectSettings}
           sceneSettings={sceneSettings}
           specialEffects={specialEffects}
+          standingWaveSettings={standingWaveSettings}
           visualization={visualization}
           xrayMode={specialEffects.xrayMode}
           xraySettings={xraySettings}
@@ -169,8 +172,10 @@ export default function App() {
         sceneSettings={sceneSettings}
         setEffectSettings={setEffectSettings}
         setSceneSettings={setSceneSettings}
+        setStandingWaveSettings={setStandingWaveSettings}
         setVisualization={setVisualization}
         setXraySettings={setXraySettings}
+        standingWaveSettings={standingWaveSettings}
         updateChromaticAberration={updateChromaticAberration}
         updateXrayMode={updateXrayMode}
         visualization={visualization}

@@ -6,6 +6,7 @@ import { isEditableTarget } from '../../../../src/shared/special-effects/index.t
 import { XRAY_DEFAULTS } from './config'
 import { ATOM_SCALES } from './elements'
 import { useAtomRenderMode } from './render-mode'
+import { useStandingWave } from './standing-wave'
 
 const ORBITAL_SCALE = 0.82
 const ELECTRON_TEXTURE = (() => {
@@ -59,6 +60,10 @@ const GPU_TRAIL_VERTEX_SHADER = `
   uniform float uLineScale;
   uniform float uSpread;
 
+  uniform float uStandingN;
+  uniform float uStandingOmega;
+  uniform float uStandingAmplitude;
+
   varying float vAlpha;
 
   vec3 computeBondTrailPosition(float t) {
@@ -98,6 +103,14 @@ const GPU_TRAIL_VERTEX_SHADER = `
     gl_Position = projectionMatrix * mvPosition;
     gl_PointSize = mix(uPointSize * 1.2, uPointSize * 0.28, trailProgress);
     vAlpha = pow(1.0 - trailProgress, 1.35) * uOpacity;
+
+    if (uStandingN > 0.5 && uMotionProfile >= 2.0) {
+      float along = sin(t * 1.7) * uLength * uLineScale;
+      float bondParam = clamp(along / (uLength * uLineScale) * 0.5 + 0.5, 0.0, 1.0);
+      float envelope = sin(uStandingN * 3.14159265 * bondParam);
+      float breath = 0.5 + 0.5 * sin(uTime * uStandingOmega);
+      vAlpha *= 1.0 - uStandingAmplitude * envelope * envelope * breath;
+    }
   }
 `
 const GPU_TRAIL_FRAGMENT_SHADER = `
@@ -495,50 +508,47 @@ function sampleGamma5(scale) {
   return sum * scale
 }
 
-function samplePOrbitalPoint(scale = ORBITAL_SCALE) {
+function samplePOrbitalInto(positions, stride, scale = ORBITAL_SCALE) {
   let x = 0
   let y = 0
   let z = 0
-  let length = 0
+  let len = 0
 
   do {
     x = Math.random() * 2 - 1
     y = Math.random() * 2 - 1
     z = Math.random() * 2 - 1
-    length = Math.sqrt(x * x + y * y + z * z)
-  } while (length === 0 || length > 1)
+    len = Math.sqrt(x * x + y * y + z * z)
+  } while (len === 0 || len > 1)
 
-  x /= length
-  y /= length
-  z /= length
+  x /= len
+  y /= len
+  z /= len
 
   while (Math.random() > y * y) {
     do {
       x = Math.random() * 2 - 1
       y = Math.random() * 2 - 1
       z = Math.random() * 2 - 1
-      length = Math.sqrt(x * x + y * y + z * z)
-    } while (length === 0 || length > 1)
+      len = Math.sqrt(x * x + y * y + z * z)
+    } while (len === 0 || len > 1)
 
-    x /= length
-    y /= length
-    z /= length
+    x /= len
+    y /= len
+    z /= len
   }
 
   const radius = sampleGamma5(scale)
-
-  return new THREE.Vector3(x * radius, y * radius, z * radius)
+  positions[stride] = x * radius
+  positions[stride + 1] = y * radius
+  positions[stride + 2] = z * radius
 }
 
 function createCloudPositions(count = 1200) {
   const positions = new Float32Array(count * 3)
 
   for (let i = 0; i < count; i += 1) {
-    const point = samplePOrbitalPoint()
-    const stride = i * 3
-    positions[stride] = point.x
-    positions[stride + 1] = point.y
-    positions[stride + 2] = point.z
+    samplePOrbitalInto(positions, i * 3)
   }
 
   return positions
@@ -634,6 +644,9 @@ function createGpuTrailMaterial({
       uLength: { value: length },
       uLineScale: { value: lineScale },
       uSpread: { value: spread },
+      uStandingN: { value: 0 },
+      uStandingOmega: { value: 0.5 },
+      uStandingAmplitude: { value: 0.7 },
     },
     vertexShader: GPU_TRAIL_VERTEX_SHADER,
     fragmentShader: GPU_TRAIL_FRAGMENT_SHADER,
@@ -658,6 +671,7 @@ function useGpuTrail({
   lineScale,
   spread,
 }) {
+  const standingWave = useStandingWave()
   const geometry = useMemo(
     () => createGpuTrailGeometry(sampleCount),
     [sampleCount],
@@ -707,6 +721,9 @@ function useGpuTrail({
 
   useFrame((state) => {
     material.uniforms.uTime.value = state.clock.getElapsedTime()
+    material.uniforms.uStandingN.value = standingWave.standingWaveN
+    material.uniforms.uStandingOmega.value = standingWave.standingWaveOmega
+    material.uniforms.uStandingAmplitude.value = standingWave.standingWaveAmplitude
   })
 
   return { geometry, material }
@@ -890,11 +907,8 @@ function OrbitalCloud() {
     const start = (Math.floor(state.clock.getElapsedTime() * 120) * 15) % 1200
 
     for (let i = 0; i < 15; i += 1) {
-      const point = samplePOrbitalPoint()
       const stride = ((start + i) % 1200) * 3
-      positions[stride] = point.x
-      positions[stride + 1] = point.y
-      positions[stride + 2] = point.z
+      samplePOrbitalInto(positions, stride)
     }
 
     cloudRef.current.geometry.attributes.position.needsUpdate = true
@@ -1143,17 +1157,9 @@ function BondElectronPair({
   )
 }
 
-function AromaticRingElectron({
-  ringPoints,
-  color = '#a7ddff',
-  speed = 11.5,
-  phase = 0,
-  lift = 0.2,
-  side = 1,
-  lightIntensity = 0,
-}) {
-  const electronRef = useRef(null)
-  const trailBuffer = useTrailBuffer(36)
+const AROMATIC_LUT_SIZE = 128
+
+function buildAromaticLUT(ringPoints) {
   const curve = new THREE.CatmullRomCurve3(
     ringPoints.map((point) => new THREE.Vector3(...point)),
     true,
@@ -1168,26 +1174,76 @@ function AromaticRingElectron({
     .subVectors(new THREE.Vector3(...ringPoints[1]), new THREE.Vector3(...ringPoints[0]))
     .cross(new THREE.Vector3().subVectors(new THREE.Vector3(...ringPoints[2]), new THREE.Vector3(...ringPoints[1])))
     .normalize()
+
+  const positions = new Float32Array(AROMATIC_LUT_SIZE * 3)
+  const tangents = new Float32Array(AROMATIC_LUT_SIZE * 3)
+  const radials = new Float32Array(AROMATIC_LUT_SIZE * 3)
+  const tmpPoint = new THREE.Vector3()
+  const tmpTangent = new THREE.Vector3()
+  const tmpRadial = new THREE.Vector3()
+
+  for (let i = 0; i < AROMATIC_LUT_SIZE; i += 1) {
+    const t = i / AROMATIC_LUT_SIZE
+    curve.getPointAt(t, tmpPoint)
+    curve.getTangentAt(t, tmpTangent).normalize()
+    tmpRadial.copy(tmpPoint).sub(center).normalize()
+    const s = i * 3
+    positions[s] = tmpPoint.x
+    positions[s + 1] = tmpPoint.y
+    positions[s + 2] = tmpPoint.z
+    tangents[s] = tmpTangent.x
+    tangents[s + 1] = tmpTangent.y
+    tangents[s + 2] = tmpTangent.z
+    radials[s] = tmpRadial.x
+    radials[s + 1] = tmpRadial.y
+    radials[s + 2] = tmpRadial.z
+  }
+
+  return { positions, tangents, radials, ringNormal }
+}
+
+function lerpLUT(out, lut, progress) {
+  const fIndex = progress * AROMATIC_LUT_SIZE
+  const i0 = Math.floor(fIndex) % AROMATIC_LUT_SIZE
+  const i1 = (i0 + 1) % AROMATIC_LUT_SIZE
+  const frac = fIndex - Math.floor(fIndex)
+  const s0 = i0 * 3
+  const s1 = i1 * 3
+  out.x = lut[s0] + (lut[s1] - lut[s0]) * frac
+  out.y = lut[s0 + 1] + (lut[s1 + 1] - lut[s0 + 1]) * frac
+  out.z = lut[s0 + 2] + (lut[s1 + 2] - lut[s0 + 2]) * frac
+}
+
+function AromaticRingElectron({
+  ringPoints,
+  color = '#a7ddff',
+  speed = 11.5,
+  phase = 0,
+  lift = 0.2,
+  side = 1,
+  lightIntensity = 0,
+}) {
+  const electronRef = useRef(null)
+  const trailBuffer = useTrailBuffer(36)
+  const lut = useMemo(() => buildAromaticLUT(ringPoints), [ringPoints])
   const basePointRef = useRef(new THREE.Vector3())
   const tangentRef = useRef(new THREE.Vector3())
   const radialRef = useRef(new THREE.Vector3())
-  const hoverRef = useRef(new THREE.Vector3())
   const positionRef = useRef(new THREE.Vector3())
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime()
     const progress = ((t * speed) / 8 + phase) % 1
-    const basePoint = curve.getPointAt(progress, basePointRef.current)
-    const tangent = curve.getTangentAt(progress, tangentRef.current).normalize()
-    const radial = radialRef.current.copy(basePoint).sub(center).normalize()
-    const hover = hoverRef.current.copy(ringNormal).multiplyScalar(
-      side * (lift + Math.sin(t * 4.2 + phase * Math.PI * 2) * lift * 0.18),
-    )
+    lerpLUT(basePointRef.current, lut.positions, progress)
+    lerpLUT(tangentRef.current, lut.tangents, progress)
+    lerpLUT(radialRef.current, lut.radials, progress)
+
+    const hoverScale = side * (lift + Math.sin(t * 4.2 + phase * Math.PI * 2) * lift * 0.18)
+    const tangentScale = Math.sin(t * 3.3 + phase * Math.PI * 2) * 0.02
     const position = positionRef.current
-      .copy(basePoint)
-      .add(radial.multiplyScalar(0.07))
-      .add(hover)
-      .add(tangent.multiplyScalar(Math.sin(t * 3.3 + phase * Math.PI * 2) * 0.02))
+    position.x = basePointRef.current.x + radialRef.current.x * 0.07 + lut.ringNormal.x * hoverScale + tangentRef.current.x * tangentScale
+    position.y = basePointRef.current.y + radialRef.current.y * 0.07 + lut.ringNormal.y * hoverScale + tangentRef.current.y * tangentScale
+    position.z = basePointRef.current.z + radialRef.current.z * 0.07 + lut.ringNormal.z * hoverScale + tangentRef.current.z * tangentScale
 
     electronRef.current.position.copy(position)
     advanceTrailBuffer(trailBuffer, position.x, position.y, position.z)
@@ -1315,6 +1371,7 @@ function SingleBond({
 
 function PiBondElectron({ sign = 1, color = '#8fd0ff', speed = 12, phase = 0, lightIntensity = 0 }) {
   const electronRef = useRef(null)
+  const positionRef = useRef(new THREE.Vector3())
   const trail = useGpuTrail({
     sampleCount: 26,
     color,
@@ -1329,7 +1386,8 @@ function PiBondElectron({ sign = 1, color = '#8fd0ff', speed = 12, phase = 0, li
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime() * speed + phase
-    const position = new THREE.Vector3(
+    const position = positionRef.current
+    position.set(
       Math.sin(t * 1.9) * 0.92 + Math.sin(t * 3.2) * 0.14,
       sign * (0.58 + Math.abs(Math.sin(t * 1.4)) * 0.28),
       Math.cos(t * 2.3) * 0.16 + Math.sin(t * 4.1) * 0.04,

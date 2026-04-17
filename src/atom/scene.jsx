@@ -14,6 +14,7 @@ import {
   ATOM_INTERACTION_RESUME_DELAY_MS,
   AtomInteractionProvider,
 } from './interaction'
+import { StandingWaveProvider } from './standing-wave'
 import {
   SharedEffectStack,
   SHARED_FX_CINEMATIC,
@@ -97,6 +98,7 @@ function AtomScene({
   effectSettings = EFFECT_DEFAULTS,
   sceneSettings,
   specialEffects,
+  standingWaveSettings,
   visualization,
   xrayMode,
   xraySettings,
@@ -169,19 +171,21 @@ function AtomScene({
       />
       <AtomInteractionProvider value={interactionRef}>
         <AtomRenderModeProvider value={renderMode}>
-          <group ref={moleculeRef}>
-            {dynamicMolecule ? (
-              // PubChem-fetched molecule — keyed by CID so React fully unmounts
-              // and remounts when the user searches a different compound.
-              <DynamicMolecule
-                key={dynamicMolecule.cid}
-                atomDefs={dynamicMolecule.atomDefs}
-                bondDefs={dynamicMolecule.bondDefs}
-              />
-            ) : (
-              <ActiveVisualization />
-            )}
-          </group>
+          <StandingWaveProvider value={standingWaveSettings}>
+            <group ref={moleculeRef}>
+              {dynamicMolecule ? (
+                // PubChem-fetched molecule — keyed by CID so React fully unmounts
+                // and remounts when the user searches a different compound.
+                <DynamicMolecule
+                  key={dynamicMolecule.cid}
+                  atomDefs={dynamicMolecule.atomDefs}
+                  bondDefs={dynamicMolecule.bondDefs}
+                />
+              ) : (
+                <ActiveVisualization />
+              )}
+            </group>
+          </StandingWaveProvider>
         </AtomRenderModeProvider>
       </AtomInteractionProvider>
       <AtomSceneEffects

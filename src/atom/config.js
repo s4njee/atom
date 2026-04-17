@@ -52,6 +52,12 @@ export const XRAY_DEFAULTS = {
   rimPower: 2.4,
 }
 
+export const STANDING_WAVE_DEFAULTS = {
+  standingWaveN: 0,
+  standingWaveOmega: 0.5,
+  standingWaveAmplitude: 0.7,
+}
+
 // ---------------------------------------------------------------------------
 // Named effect presets — each preset overrides a subset of EFFECT_DEFAULTS
 // and SCENE_DEFAULTS. Stored as plain objects so they can be serialised and
@@ -163,4 +169,7 @@ export const GUI_RANGES = {
   chromaticModulationOffset: [0, 1, 0.01],
   rimStrength: [0, 4, 0.01],
   rimPower: [0.25, 6, 0.01],
+  standingWaveN: [0, 8, 1],
+  standingWaveOmega: [0.1, 3, 0.01],
+  standingWaveAmplitude: [0, 1, 0.01],
 }

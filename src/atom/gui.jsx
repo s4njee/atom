@@ -23,8 +23,10 @@ function AtomGuiControls({
   sceneSettings,
   setEffectSettings,
   setSceneSettings,
+  setStandingWaveSettings,
   setVisualization,
   setXraySettings,
+  standingWaveSettings,
   updateChromaticAberration,
   updateXrayMode,
   visualization,
@@ -38,6 +40,7 @@ function AtomGuiControls({
     ...sceneSettings,
     ...effectSettings,
     ...xraySettings,
+    ...standingWaveSettings,
   })
   const syncGuiDisplayRef = useRef(() => {})
 
@@ -254,6 +257,35 @@ function AtomGuiControls({
       (value) => updateXraySetting('rimPower', value),
     )
 
+    const updateStandingWaveSetting = (key, value) => {
+      setStandingWaveSettings((current) => (
+        current[key] === value ? current : { ...current, [key]: value }
+      ))
+    }
+
+    const standingWaveFolder = gui.addFolder('Standing Wave')
+    addNumberControl(
+      standingWaveFolder,
+      'standingWaveN',
+      'Harmonic (n)',
+      GUI_RANGES.standingWaveN,
+      (value) => updateStandingWaveSetting('standingWaveN', value),
+    )
+    addNumberControl(
+      standingWaveFolder,
+      'standingWaveOmega',
+      'Breathe Speed',
+      GUI_RANGES.standingWaveOmega,
+      (value) => updateStandingWaveSetting('standingWaveOmega', value),
+    )
+    addNumberControl(
+      standingWaveFolder,
+      'standingWaveAmplitude',
+      'Amplitude',
+      GUI_RANGES.standingWaveAmplitude,
+      (value) => updateStandingWaveSetting('standingWaveAmplitude', value),
+    )
+
     const presetsFolder = gui.addFolder('Presets')
     EFFECT_PRESETS.forEach((preset) => {
       presetsFolder.add({ apply: () => onApplyPreset(preset) }, 'apply').name(preset.label)
@@ -293,6 +325,7 @@ function AtomGuiControls({
     onApplyPreset,
     setEffectSettings,
     setSceneSettings,
+    setStandingWaveSettings,
     setVisualization,
     setXraySettings,
     updateChromaticAberration,
@@ -310,12 +343,14 @@ function AtomGuiControls({
       sceneSettings,
       effectSettings,
       xraySettings,
+      standingWaveSettings,
     )
     syncGuiDisplayRef.current()
   }, [
     chromaticAberrationEnabled,
     effectSettings,
     sceneSettings,
+    standingWaveSettings,
     visualization,
     xrayMode,
     xraySettings,
