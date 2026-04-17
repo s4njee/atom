@@ -15,14 +15,14 @@ export const SCENE_DEFAULTS = {
   fogColor: '#040913',
   fogNear: 10,
   fogFar: 20,
-  ambientIntensity: 0.36,
+  ambientIntensity: 0.6,
   hemisphereSkyColor: '#d2ecff',
   hemisphereGroundColor: '#071018',
-  hemisphereIntensity: 0.92,
+  hemisphereIntensity: 1.2,
   keyLightColor: '#ffffff',
   keyLightIntensity: 1.35,
   fillLightColor: '#4da3ff',
-  fillLightIntensity: 0.5,
+  fillLightIntensity: 0.85,
   backLightColor: '#13304f',
   backLightIntensity: 10,
   backLightDistance: 18,
@@ -35,7 +35,7 @@ export const LIGHT_POSITIONS = {
 }
 
 export const EFFECT_DEFAULTS = {
-  bloomEnabled: false,
+  bloomEnabled: true,
   bloomIntensity: 0.72,
   bloomThreshold: 0.2,
   bloomSmoothing: 0.26,
@@ -69,7 +69,7 @@ export const EFFECT_PRESETS = [
     id: 'default',
     label: 'Default',
     effect: {
-      bloomEnabled: false,
+      bloomEnabled: true,
       bloomIntensity: 0.72,
       bloomThreshold: 0.2,
       bloomSmoothing: 0.26,

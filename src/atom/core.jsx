@@ -1289,7 +1289,11 @@ function AromaticRingPair({
   colorA = '#9edbff',
   colorB = '#d4f1ff',
   speed = 11.5,
+  lightIntensity = 10,
 }) {
+  const { bondLightIntensityScale } = useAtomRenderMode()
+  const scaledLightIntensity = lightIntensity * bondLightIntensityScale
+
   return (
     <>
       <AromaticRingElectron
@@ -1298,6 +1302,7 @@ function AromaticRingPair({
         speed={speed}
         phase={0}
         side={1}
+        lightIntensity={scaledLightIntensity}
       />
       <AromaticRingElectron
         ringPoints={ringPoints}
@@ -1305,6 +1310,7 @@ function AromaticRingPair({
         speed={speed * 1.06}
         phase={0.5}
         side={-1}
+        lightIntensity={scaledLightIntensity}
       />
     </>
   )

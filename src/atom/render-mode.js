@@ -1,7 +1,7 @@
 import { createContext, createElement, useContext } from 'react'
 
 const DEFAULT_ATOM_RENDER_MODE = Object.freeze({
-  bondLightIntensityScale: 0,
+  bondLightIntensityScale: 1,
   cinematicEnabled: false,
 })
 

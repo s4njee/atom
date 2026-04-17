@@ -111,14 +111,14 @@ function createAtomPositionLookup(atomDefs) {
 }
 
 const BASE_ATOM_SURFACE = Object.freeze({
-  roughness: 0.34,
-  metalness: 0.08,
-  clearcoat: 0.18,
-  clearcoatRoughness: 0.4,
-  reflectivity: 0.34,
-  sheen: 0.04,
-  specularIntensity: 0.28,
-  specularColor: '#cfe6f6',
+  roughness: 0.2,
+  metalness: 0.18,
+  clearcoat: 0.9,
+  clearcoatRoughness: 0.16,
+  reflectivity: 1,
+  sheen: 0.2,
+  specularIntensity: 1,
+  specularColor: '#f4fbff',
 })
 
 const CINEMATIC_ATOM_SURFACE = Object.freeze({

@@ -139,6 +139,7 @@ export default function App() {
       {/* 3-D scene -------------------------------------------------------- */}
       <SafeCanvas
         camera={CAMERA_DEFAULTS}
+        dpr={0.75}
         rendererOptions={{ antialias: false, powerPreference: 'high-performance' }}
         sceneLabel="Atom"
       >
