@@ -42,6 +42,70 @@ const NUCLEUS_GEOMETRY = new THREE.SphereGeometry(1, 16, 16)
 const NUCLEUS_MATERIAL_CACHE = new Map()
 const BLUEPRINT_INK = '#1f4f5a'
 const BLUEPRINT_LINE = '#386d75'
+
+// ── Themed nucleus geometries ──────────────────────────────────────────────
+const CHALK_GEOMETRY   = new THREE.IcosahedronGeometry(1, 0)
+const CIRCUIT_GEOMETRY = new THREE.CylinderGeometry(1, 1, 0.18, 32)
+
+// ── Hologram rim shader ────────────────────────────────────────────────────
+const HOLOGRAM_VERTEX = `
+  varying vec3 vNormal;
+  varying vec3 vViewDir;
+  void main() {
+    vNormal = normalize(normalMatrix * normal);
+    vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+    vViewDir = normalize(-mvPos.xyz);
+    gl_Position = projectionMatrix * mvPos;
+  }
+`
+const HOLOGRAM_FRAGMENT = `
+  uniform vec3 uRimColor;
+  varying vec3 vNormal;
+  varying vec3 vViewDir;
+  void main() {
+    float rim = pow(1.0 - abs(dot(vNormal, vViewDir)), 3.0);
+    gl_FragColor = vec4(uRimColor, rim * 0.9);
+  }
+`
+const HOLOGRAM_RIM_COLOR = new THREE.Color('#00ffe0')
+
+// ── Thermal heatmap helpers ────────────────────────────────────────────────
+const THERMAL_VERTEX = `
+  varying vec3 vNormal;
+  varying vec3 vViewDir;
+  void main() {
+    vNormal = normalize(normalMatrix * normal);
+    vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+    vViewDir = normalize(-mvPos.xyz);
+    gl_Position = projectionMatrix * mvPos;
+  }
+`
+const THERMAL_FRAGMENT = `
+  uniform vec3 uAtomColor;
+  varying vec3 vNormal;
+  varying vec3 vViewDir;
+  void main() {
+    float diffuse = 0.4 + 0.6 * max(dot(vNormal, vec3(0.3, 0.6, 0.4)), 0.0);
+    float rim = pow(1.0 - abs(dot(vNormal, vViewDir)), 2.0);
+    vec3 col = uAtomColor * diffuse + uAtomColor * rim * 0.35;
+    gl_FragColor = vec4(col, 1.0);
+  }
+`
+
+// Map atomic number (1–118) into a blue → yellow → red heatmap color.
+// Low Z → cold blue, mid Z → warm yellow, high Z → hot red.
+const _thermalTmpColor = new THREE.Color()
+function thermalColorFromAtomicNumber(atomicNumber) {
+  const t = Math.min(Math.max((atomicNumber - 1) / 117, 0), 1)
+  if (t < 0.5) {
+    const s = t * 2
+    _thermalTmpColor.setRGB(s, s, 1 - s * 0.6)
+  } else {
+    const s = (t - 0.5) * 2
+    _thermalTmpColor.setRGB(1, 1 - s * 0.6, 0.4 * (1 - s))
+  }
+  return _thermalTmpColor
+}
 const GPU_TRAIL_VERTEX_SHADER = `
   attribute float trailProgress;
 
@@ -935,7 +999,7 @@ function OrbitalCloud() {
 }
 
 function ElectronPair({ axis = 'y', lobeTightness = 1 }) {
-  const { blueprintEnabled } = useAtomRenderMode()
+  const { electronsHidden } = useAtomRenderMode()
   const swapRef = useRef(1)
   const swapTimerRef = useRef(0)
   const swapProgressRef = useRef(1)
@@ -961,7 +1025,7 @@ function ElectronPair({ axis = 'y', lobeTightness = 1 }) {
     polarityRef.current = THREE.MathUtils.lerp(-swapRef.current, swapRef.current, swapMix)
   })
 
-  if (blueprintEnabled) return null
+  if (electronsHidden) return null
 
   return (
     <>
@@ -986,6 +1050,71 @@ function ElectronPair({ axis = 'y', lobeTightness = 1 }) {
   )
 }
 
+// ── Themed nucleus sub-components ──────────────────────────────────────────
+
+function ChalkNucleus({ position, scale }) {
+  return (
+    <mesh position={position} scale={scale} geometry={CHALK_GEOMETRY}>
+      <meshStandardMaterial color="#e8e8e0" roughness={1} metalness={0} flatShading />
+    </mesh>
+  )
+}
+
+function HologramNucleus({ position, scale }) {
+  const material = useMemo(() => {
+    const mat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      side: THREE.FrontSide,
+      uniforms: {
+        uRimColor: { value: HOLOGRAM_RIM_COLOR.clone() },
+      },
+      vertexShader: HOLOGRAM_VERTEX,
+      fragmentShader: HOLOGRAM_FRAGMENT,
+    })
+    mat.customProgramCacheKey = () => 'atom-hologram-rim'
+    return mat
+  }, [])
+
+  useEffect(() => () => material.dispose(), [material])
+
+  return (
+    <mesh position={position} scale={scale} geometry={NUCLEUS_GEOMETRY} material={material} />
+  )
+}
+
+
+function CircuitNucleus({ position, scale }) {
+  return (
+    <mesh position={position} scale={scale} geometry={CIRCUIT_GEOMETRY}>
+      <meshStandardMaterial color="#d4a843" metalness={0.9} roughness={0.25} />
+    </mesh>
+  )
+}
+
+function ThermalNucleus({ position, scale, atomicNumber }) {
+  const material = useMemo(() => {
+    const col = thermalColorFromAtomicNumber(atomicNumber ?? 6)
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        uAtomColor: { value: new THREE.Color(col.r, col.g, col.b) },
+      },
+      vertexShader: THERMAL_VERTEX,
+      fragmentShader: THERMAL_FRAGMENT,
+    })
+    mat.customProgramCacheKey = () => 'atom-thermal-heatmap'
+    return mat
+  }, [atomicNumber])
+
+  useEffect(() => () => material.dispose(), [material])
+
+  return (
+    <mesh position={position} scale={scale} geometry={NUCLEUS_GEOMETRY} material={material} />
+  )
+}
+
+// ── Main Nucleus component ────────────────────────────────────────────────
+
 function Nucleus({
   position = [0, 0, 0],
   scale = 0.24,
@@ -998,8 +1127,9 @@ function Nucleus({
   clearcoatRoughness = 0.16,
   reflectivity = 1,
   sheen = 0.2,
+  atomicNumber,
 }) {
-  const { blueprintEnabled } = useAtomRenderMode()
+  const { blueprintEnabled, nucleusStyle } = useAtomRenderMode()
   const materialOptions = {
     color,
     emissive,
@@ -1029,6 +1159,16 @@ function Nucleus({
         <meshBasicMaterial color={BLUEPRINT_INK} wireframe transparent opacity={0.92} />
       </mesh>
     )
+  }
+
+  if (nucleusStyle) {
+    switch (nucleusStyle) {
+      case 'chalk':    return <ChalkNucleus position={position} scale={scale} />
+      case 'hologram': return <HologramNucleus position={position} scale={scale} />
+      case 'circuit':  return <CircuitNucleus position={position} scale={scale} />
+      case 'thermal':  return <ThermalNucleus position={position} scale={scale} atomicNumber={atomicNumber} />
+      default:         break
+    }
   }
 
   return (
@@ -1309,10 +1449,10 @@ function AromaticRingPair({
   speed = 11.5,
   lightIntensity = 10,
 }) {
-  const { blueprintEnabled, bondLightIntensityScale } = useAtomRenderMode()
+  const { electronsHidden, bondLightIntensityScale } = useAtomRenderMode()
   const scaledLightIntensity = lightIntensity * bondLightIntensityScale
 
-  if (blueprintEnabled) return null
+  if (electronsHidden) return null
 
   return (
     <>
@@ -1399,7 +1539,7 @@ function SingleBond({
   showStructure = true,
   electronProps = {},
 }) {
-  const { blueprintEnabled } = useAtomRenderMode()
+  const { electronsHidden } = useAtomRenderMode()
 
   return (
     <>
@@ -1411,7 +1551,7 @@ function SingleBond({
           opacity={opacity}
         />
       ) : null}
-      {!blueprintEnabled ? (
+      {!electronsHidden ? (
         <BondElectronPair
           start={start}
           end={end}
@@ -1514,7 +1654,7 @@ function DoubleBond({
     { sign: -1, colorA: '#6fbfff', colorB: '#9ed9ff', speed: 11.1, phase: Math.PI * 0.7 },
   ],
 }) {
-  const { blueprintEnabled } = useAtomRenderMode()
+  const { electronsHidden } = useAtomRenderMode()
   // PiBondPair is authored in a local left-to-right bond space, so the helper computes the
   // world-space midpoint/orientation once and reuses that transform for any arbitrary bond.
   const { midpoint, quaternion, length } = getBondTransform(start, end)
@@ -1530,14 +1670,14 @@ function DoubleBond({
           opacity={opacity}
         />
       ) : null}
-      {!blueprintEnabled ? (
+      {!electronsHidden ? (
         <BondElectronPair
           start={start}
           end={end}
           {...sigmaProps}
         />
       ) : null}
-      {!blueprintEnabled ? (
+      {!electronsHidden ? (
         <group
           position={midpoint.toArray()}
           quaternion={quaternion.toArray()}

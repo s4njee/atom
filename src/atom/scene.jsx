@@ -4,6 +4,7 @@ import { OrbitControls } from '@react-three/drei'
 import {
   EFFECT_DEFAULTS,
   LIGHT_POSITIONS,
+  THEME_SCENE_OVERRIDES,
 } from './config'
 import { createXrayMaterialController } from './core'
 import {
@@ -14,6 +15,15 @@ import {
   ATOM_INTERACTION_RESUME_DELAY_MS,
   AtomInteractionProvider,
 } from './interaction'
+
+const THEME_TO_NUCLEUS_STYLE = {
+  chalkboard: 'chalk',
+  hologram:   'hologram',
+  circuit:    'circuit',
+  thermal:    'thermal',
+}
+
+const THEMES_WITHOUT_ELECTRONS = new Set(['chalk', 'circuit'])
 import { StandingWaveProvider } from './standing-wave'
 import {
   SharedEffectStack,
@@ -55,7 +65,7 @@ function AtomXrayController({ enabled, settings, targetRef }) {
 }
 
 function AtomSceneEffects({
-  blueprintMode,
+  themeMode,
   chromaticAberrationEnabled,
   effectSettings,
   specialEffects,
@@ -63,17 +73,18 @@ function AtomSceneEffects({
   xrayMode,
   xraySettings,
 }) {
+  const disablePostFx = themeMode != null
   return (
     <>
       <AtomXrayController enabled={xrayMode} settings={xraySettings} targetRef={targetRef} />
       <SharedEffectStack
         barrelBlurAmount={0.12}
-        bloomEnabled={!blueprintMode && effectSettings.bloomEnabled}
+        bloomEnabled={!disablePostFx && effectSettings.bloomEnabled}
         bloomIntensity={effectSettings.bloomIntensity}
         bloomRadius={effectSettings.bloomRadius}
         bloomSmoothing={effectSettings.bloomSmoothing}
         bloomThreshold={effectSettings.bloomThreshold}
-        chromaticAberrationEnabled={!blueprintMode && chromaticAberrationEnabled}
+        chromaticAberrationEnabled={!disablePostFx && chromaticAberrationEnabled}
         chromaticModulationOffset={effectSettings.chromaticModulationOffset}
         chromaticOffset={effectSettings.chromaticOffset}
         chromaticOscillationSpeed={effectSettings.chromaticOscillationSpeed}
@@ -94,7 +105,7 @@ function AtomSceneEffects({
 }
 
 function AtomScene({
-  blueprintMode = false,
+  themeMode = null,
   chromaticAberrationEnabled,
   dynamicMolecule,
   effectSettings = EFFECT_DEFAULTS,
@@ -113,16 +124,25 @@ function AtomScene({
   })
   const ActiveVisualization = VISUALIZATION_COMPONENTS[visualization] ?? VISUALIZATION_COMPONENTS[DEFAULT_VISUALIZATION]
   const cinematicEnabled = specialEffects.currentFx === SHARED_FX_CINEMATIC
+  const blueprintMode = themeMode === 'blueprint'
+  const nucleusStyle = themeMode && themeMode !== 'blueprint'
+    ? THEME_TO_NUCLEUS_STYLE[themeMode] ?? null
+    : null
+  const electronsHidden = blueprintMode || (nucleusStyle != null && THEMES_WITHOUT_ELECTRONS.has(nucleusStyle))
+  const themeOverrides = themeMode ? THEME_SCENE_OVERRIDES[themeMode] : null
   const renderMode = useMemo(() => {
-    if (!blueprintMode && !cinematicEnabled && !pharmacophoreMap) return DEFAULT_ATOM_RENDER_MODE
+    if (!blueprintMode && !cinematicEnabled && !electronsHidden && !pharmacophoreMap && !nucleusStyle)
+      return DEFAULT_ATOM_RENDER_MODE
 
     return {
       blueprintEnabled: blueprintMode,
       bondLightIntensityScale: 1,
       cinematicEnabled,
+      electronsHidden,
+      nucleusStyle,
       pharmacophoreMap,
     }
-  }, [blueprintMode, cinematicEnabled, pharmacophoreMap])
+  }, [blueprintMode, cinematicEnabled, electronsHidden, nucleusStyle, pharmacophoreMap])
   const handleControlsStart = useCallback(() => {
     interactionRef.current.controlsActive = true
     interactionRef.current.pauseAnimationUntil = performance.now() + ATOM_INTERACTION_RESUME_DELAY_MS
@@ -137,13 +157,13 @@ function AtomScene({
 
   return (
     <>
-      <color attach="background" args={[blueprintMode ? '#edf2e9' : sceneSettings.backgroundColor]} />
+      <color attach="background" args={[themeOverrides?.bg ?? sceneSettings.backgroundColor]} />
       <fog
         attach="fog"
         args={[
-          blueprintMode ? '#edf2e9' : sceneSettings.fogColor,
-          blueprintMode ? 14 : sceneSettings.fogNear,
-          blueprintMode ? 28 : sceneSettings.fogFar,
+          themeOverrides?.fog ?? sceneSettings.fogColor,
+          themeOverrides?.fogNear ?? sceneSettings.fogNear,
+          themeOverrides?.fogFar ?? sceneSettings.fogFar,
         ]}
       />
       <ambientLight intensity={sceneSettings.ambientIntensity} />
@@ -202,7 +222,7 @@ function AtomScene({
         </AtomRenderModeProvider>
       </AtomInteractionProvider>
       <AtomSceneEffects
-        blueprintMode={blueprintMode}
+        themeMode={themeMode}
         chromaticAberrationEnabled={chromaticAberrationEnabled}
         effectSettings={effectSettings}
         specialEffects={specialEffects}
