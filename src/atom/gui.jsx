@@ -5,6 +5,7 @@ import {
   EFFECT_PRESETS,
   GUI_DEFAULTS,
   GUI_RANGES,
+  THEME_ORDER,
 } from './config'
 import { isEditableTarget } from './core'
 import {
@@ -17,7 +18,7 @@ import {
 const VISUALIZATION_NAMES = ATOM_VISUALIZATIONS.map(({ label }) => label)
 
 function AtomGuiControls({
-  blueprintMode,
+  themeMode,
   chromaticAberrationEnabled,
   effectSettings,
   onApplyPreset,
@@ -30,6 +31,7 @@ function AtomGuiControls({
   standingWaveSettings,
   pharmacophoreMode,
   updateBlueprintMode,
+  updateTheme,
   updateChromaticAberration,
   updatePharmacophoreMode,
   updateXrayMode,
@@ -39,7 +41,7 @@ function AtomGuiControls({
 }) {
   const paramsRef = useRef({
     visualization: VISUALIZATION_LABELS[visualization] ?? VISUALIZATION_LABELS[DEFAULT_VISUALIZATION],
-    blueprintMode,
+    themeMode: themeMode ?? 'none',
     chromaticAberrationEnabled,
     pharmacophoreMode,
     xrayMode,
@@ -175,11 +177,12 @@ function AtomGuiControls({
       (value) => updateSceneSetting('backLightDistance', value),
     )
 
+    const themeNames = ['none', ...THEME_ORDER.filter(Boolean)]
     const effectsFolder = gui.addFolder('Effects')
     effectsFolder
-      .add(params, 'blueprintMode')
-      .name('Blueprint')
-      .onChange((value) => updateBlueprintMode(value))
+      .add(params, 'themeMode', themeNames)
+      .name('Theme')
+      .onChange((value) => updateTheme(value === 'none' ? null : value))
     effectsFolder
       .add(params, 'chromaticAberrationEnabled')
       .name('Chromatic')
@@ -343,6 +346,7 @@ function AtomGuiControls({
     setVisualization,
     setXraySettings,
     updateBlueprintMode,
+    updateTheme,
     updateChromaticAberration,
     updatePharmacophoreMode,
     updateXrayMode,
@@ -353,7 +357,7 @@ function AtomGuiControls({
       paramsRef.current,
       {
         visualization: VISUALIZATION_LABELS[visualization] ?? VISUALIZATION_LABELS[DEFAULT_VISUALIZATION],
-        blueprintMode,
+        themeMode: themeMode ?? 'none',
         chromaticAberrationEnabled,
         pharmacophoreMode,
         xrayMode,
@@ -365,7 +369,7 @@ function AtomGuiControls({
     )
     syncGuiDisplayRef.current()
   }, [
-    blueprintMode,
+    themeMode,
     chromaticAberrationEnabled,
     effectSettings,
     pharmacophoreMode,

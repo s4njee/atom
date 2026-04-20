@@ -578,3 +578,233 @@ canvas {
   opacity: 0.68;
   margin-top: 1px;
 }
+
+/* ==================================================================
+   CHALKBOARD THEME
+   ================================================================== */
+
+.app-shell.is-chalkboard {
+  color: #d4d4c8;
+  background: #1a2a1a;
+}
+
+.chalkboard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(255, 255, 255, 0.012) 3px,
+      rgba(255, 255, 255, 0.012) 4px
+    );
+  mix-blend-mode: screen;
+}
+
+.chalkboard-eraser {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  color: rgba(255, 255, 255, 0.35);
+  font: 10px/1 "Courier New", monospace;
+  letter-spacing: 0.06em;
+}
+
+.app-shell.is-chalkboard .visualization-button {
+  border-color: rgba(200, 200, 180, 0.25);
+  color: #c8c8b8;
+  background: rgba(200, 200, 180, 0.06);
+}
+
+.app-shell.is-chalkboard .visualization-button:hover {
+  border-color: rgba(200, 200, 180, 0.4);
+  background: rgba(200, 200, 180, 0.12);
+}
+
+.app-shell.is-chalkboard .visualization-button.is-active {
+  border-color: rgba(200, 200, 180, 0.6);
+  background: rgba(200, 200, 180, 0.2);
+}
+
+/* ==================================================================
+   HOLOGRAM THEME
+   ================================================================== */
+
+.app-shell.is-hologram {
+  color: #00ffe0;
+  background: #050510;
+}
+
+.hologram-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 255, 224, 0.03) 2px,
+      rgba(0, 255, 224, 0.03) 4px
+    );
+  animation: hologram-scan 4s linear infinite;
+  mix-blend-mode: screen;
+}
+
+@keyframes hologram-scan {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 200px; }
+}
+
+.hologram-readout {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  padding: 5px 8px;
+  border: 1px solid rgba(0, 255, 224, 0.3);
+  color: rgba(0, 255, 224, 0.6);
+  font: 10px/1 "Courier New", monospace;
+  letter-spacing: 0.1em;
+  animation: hologram-flicker 3s ease-in-out infinite;
+}
+
+@keyframes hologram-flicker {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+  73% { opacity: 0.4; }
+  77% { opacity: 0.9; }
+}
+
+.app-shell.is-hologram .visualization-button {
+  border-color: rgba(0, 255, 224, 0.2);
+  color: #00ffe0;
+  background: rgba(0, 255, 224, 0.04);
+}
+
+.app-shell.is-hologram .visualization-button:hover {
+  border-color: rgba(0, 255, 224, 0.4);
+  background: rgba(0, 255, 224, 0.1);
+}
+
+.app-shell.is-hologram .visualization-button.is-active {
+  border-color: rgba(0, 255, 224, 0.6);
+  background: rgba(0, 255, 224, 0.18);
+}
+
+
+/* ==================================================================
+   CIRCUIT BOARD THEME
+   ================================================================== */
+
+.app-shell.is-circuit {
+  color: #00ff41;
+  background: #0d1f0d;
+}
+
+.circuit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0, 255, 65, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 65, 0.04) 1px, transparent 1px),
+    linear-gradient(rgba(0, 255, 65, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 65, 0.08) 1px, transparent 1px);
+  background-size: 12px 12px, 12px 12px, 60px 60px, 60px 60px;
+  mix-blend-mode: screen;
+}
+
+.circuit-readout {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  padding: 5px 8px;
+  border: 1px solid rgba(0, 255, 65, 0.25);
+  color: rgba(0, 255, 65, 0.5);
+  font: 10px/1 "Courier New", monospace;
+  letter-spacing: 0.08em;
+}
+
+.app-shell.is-circuit .visualization-button {
+  border-color: rgba(0, 255, 65, 0.2);
+  color: #00ff41;
+  background: rgba(0, 255, 65, 0.04);
+}
+
+.app-shell.is-circuit .visualization-button:hover {
+  border-color: rgba(0, 255, 65, 0.4);
+  background: rgba(0, 255, 65, 0.1);
+}
+
+.app-shell.is-circuit .visualization-button.is-active {
+  border-color: rgba(0, 255, 65, 0.6);
+  background: rgba(0, 255, 65, 0.18);
+}
+
+/* ==================================================================
+   THERMAL / HEAT MAP THEME
+   ================================================================== */
+
+.app-shell.is-thermal {
+  color: #ff6644;
+  background: #0a0a14;
+}
+
+.thermal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.thermal-legend {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.thermal-legend-bar {
+  width: 10px;
+  height: 140px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  background: linear-gradient(to bottom, #ff2200, #ffaa00, #ffee00, #44aaff, #2244cc);
+}
+
+.thermal-legend-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 140px;
+  font: 9px/1 "Courier New", monospace;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.06em;
+}
+
+.app-shell.is-thermal .visualization-button {
+  border-color: rgba(255, 102, 68, 0.2);
+  color: #ff6644;
+  background: rgba(255, 102, 68, 0.04);
+}
+
+.app-shell.is-thermal .visualization-button:hover {
+  border-color: rgba(255, 102, 68, 0.4);
+  background: rgba(255, 102, 68, 0.1);
+}
+
+.app-shell.is-thermal .visualization-button.is-active {
+  border-color: rgba(255, 102, 68, 0.6);
+  background: rgba(255, 102, 68, 0.18);
+}

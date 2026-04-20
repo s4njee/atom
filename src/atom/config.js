@@ -7,6 +7,31 @@ export const APP_HOTKEYS = {
   gui: 'g',
 }
 
+// ── Visual themes ──────────────────────────────────────────────────────────
+// Each theme is a CSS class + scene override combination.
+// null means "no theme" (default look).
+export const THEME_ORDER = [
+  null,
+  'blueprint',
+  'chalkboard',
+  'hologram',
+  'circuit',
+  'thermal',
+]
+
+export const THEME_SCENE_OVERRIDES = {
+  blueprint:   { bg: '#edf2e9', fog: '#edf2e9', fogNear: 14, fogFar: 28 },
+  chalkboard:  { bg: '#1a2a1a', fog: '#1a2a1a', fogNear: 12, fogFar: 26 },
+  hologram:    { bg: '#050510', fog: '#050510', fogNear: 12, fogFar: 28 },
+  circuit:     { bg: '#0d1f0d', fog: '#0d1f0d', fogNear: 12, fogFar: 26 },
+  thermal:     { bg: '#0a0a14', fog: '#0a0a14', fogNear: 10, fogFar: 24 },
+}
+
+export function getNextTheme(current) {
+  const idx = THEME_ORDER.indexOf(current)
+  return THEME_ORDER[(idx + 1) % THEME_ORDER.length]
+}
+
 export const CAMERA_DEFAULTS = {
   position: [0, 0.2, 12.5],
   fov: 45,

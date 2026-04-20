@@ -41,7 +41,7 @@ export default function App() {
   const [standingWaveSettings, setStandingWaveSettings] = useState(STANDING_WAVE_DEFAULTS)
   const [specialEffects, setSpecialEffects] = useState(() => createInitialSharedSpecialEffectState({ chromaticAberrationEnabled: true }))
   const [pharmacophoreMode, setPharmacophoreModeEnabled] = useState(false)
-  const [blueprintMode, setBlueprintMode] = useState(false)
+  const [themeMode, setThemeMode] = useState(null)
 
   // PubChem dynamic molecule state
   // `dynamicMolecule` overrides the preset visualization when set.
@@ -79,9 +79,22 @@ export default function App() {
   }, [])
 
   const updateBlueprintMode = useCallback((enabled) => {
-    setBlueprintMode(enabled)
+    setThemeMode(enabled ? 'blueprint' : null)
 
     if (enabled) {
+      setEffectSettings((current) => (
+        current.bloomEnabled
+          ? { ...current, bloomEnabled: false }
+          : current
+      ))
+    }
+  }, [])
+
+  const updateTheme = useCallback((theme) => {
+    setThemeMode(theme)
+
+    // Disable bloom for any visual theme so it doesn't fight the overlay
+    if (theme) {
       setEffectSettings((current) => (
         current.bloomEnabled
           ? { ...current, bloomEnabled: false }
@@ -173,11 +186,11 @@ export default function App() {
 
       if (event.key === APP_HOTKEYS.blueprint) {
         event.preventDefault()
-        updateBlueprintMode(!blueprintMode)
+        updateBlueprintMode(themeMode !== 'blueprint')
         return
       }
 
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
         event.preventDefault()
         // Arrow keys while a dynamic molecule is shown: clear it and cycle presets
         if (dynamicMolecule) handleClearSearch()
@@ -192,7 +205,7 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [
-    blueprintMode,
+    themeMode,
     specialEffects.currentFx,
     dynamicMolecule,
     handleClearSearch,
@@ -206,8 +219,11 @@ export default function App() {
     ? null // the search pill handles labelling for dynamic molecules
     : (VISUALIZATION_LABELS[visualization] ?? '')
 
+  const blueprintMode = themeMode === 'blueprint'
+  const themeClass = themeMode ? ` is-${themeMode}` : ''
+
   return (
-    <main className={`app-shell${blueprintMode ? ' is-blueprint' : ''}`}>
+    <main className={`app-shell${themeClass}`}>
       {/* 3-D scene -------------------------------------------------------- */}
       <SafeCanvas
         camera={CAMERA_DEFAULTS}
@@ -217,7 +233,7 @@ export default function App() {
       >
         <AtomScene
           chromaticAberrationEnabled={specialEffects.chromaticAberrationEnabled}
-          blueprintMode={blueprintMode}
+          themeMode={themeMode}
           dynamicMolecule={dynamicMolecule}
           effectSettings={effectSettings}
           sceneSettings={sceneSettings}
@@ -230,17 +246,40 @@ export default function App() {
         />
       </SafeCanvas>
 
-      {blueprintMode ? (
+      {/* Theme overlays --------------------------------------------------- */}
+      {themeMode === 'blueprint' && (
         <div className="blueprint-paper-overlay" aria-hidden="true">
           <div className="blueprint-compass">
-            <span>N</span>
-            <span>E</span>
-            <span>S</span>
-            <span>W</span>
+            <span>N</span><span>E</span><span>S</span><span>W</span>
           </div>
           <div className="blueprint-stamp">SCHRODINGER BLUEPRINT</div>
         </div>
-      ) : null}
+      )}
+      {themeMode === 'chalkboard' && (
+        <div className="chalkboard-overlay" aria-hidden="true">
+          <div className="chalkboard-eraser">▓ eraser</div>
+        </div>
+      )}
+      {themeMode === 'hologram' && (
+        <div className="hologram-overlay" aria-hidden="true">
+          <div className="hologram-readout">DISPLAY ACTIVE</div>
+        </div>
+      )}
+{themeMode === 'circuit' && (
+        <div className="circuit-overlay" aria-hidden="true">
+          <div className="circuit-readout">PCB TRACE VIEW</div>
+        </div>
+      )}
+      {themeMode === 'thermal' && (
+        <div className="thermal-overlay" aria-hidden="true">
+          <div className="thermal-legend">
+            <div className="thermal-legend-bar" />
+            <div className="thermal-legend-labels">
+              <span>COLD</span><span>HOT</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <button
         type="button"
@@ -264,7 +303,7 @@ export default function App() {
       {/* GUI panel -------------------------------------------------------- */}
       <AtomGuiControls
         chromaticAberrationEnabled={specialEffects.chromaticAberrationEnabled}
-        blueprintMode={blueprintMode}
+        themeMode={themeMode}
         effectSettings={effectSettings}
         onApplyPreset={handleApplyPreset}
         sceneSettings={sceneSettings}
@@ -276,6 +315,7 @@ export default function App() {
         standingWaveSettings={standingWaveSettings}
         pharmacophoreMode={pharmacophoreMode}
         updateBlueprintMode={updateBlueprintMode}
+        updateTheme={updateTheme}
         updateChromaticAberration={updateChromaticAberration}
         updatePharmacophoreMode={updatePharmacophoreMode}
         updateXrayMode={updateXrayMode}

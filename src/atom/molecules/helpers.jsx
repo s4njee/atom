@@ -102,12 +102,27 @@ const BLUEPRINT_ATOM_STYLE = Object.freeze({
   emissiveIntensity: 0,
 })
 
+function thermalStyleForElement(element) {
+  const atomicNumber = getElementInfo(element)?.atomicNumber ?? 6
+  const t = Math.min(Math.max((atomicNumber - 1) / 117, 0), 1)
+  let r, g, b
+  if (t < 0.5) {
+    const s = t * 2
+    r = s; g = s; b = 1 - s * 0.6
+  } else {
+    const s = (t - 0.5) * 2
+    r = 1; g = 1 - s * 0.6; b = 0.4 * (1 - s)
+  }
+  const hex = `#${[r, g, b].map((c) => Math.round(c * 255).toString(16).padStart(2, '0')).join('')}`
+  return { color: hex, emissive: hex, emissiveIntensity: 1.5 }
+}
+
 // ---------------------------------------------------------------------------
 // AtomInstances — instanced renderer with hover glow + click selection
 // ---------------------------------------------------------------------------
 
 function AtomInstances({ atomDefs = [] }) {
-  const { blueprintEnabled, cinematicEnabled, pharmacophoreMap } = useAtomRenderMode()
+  const { blueprintEnabled, cinematicEnabled, nucleusStyle, pharmacophoreMap } = useAtomRenderMode()
   const [hoveredKey, setHoveredKey] = useState(null)
   const [selectedAtom, setSelectedAtom] = useState(null)
   // Track the canvas domElement for cursor changes without useThree at this level
@@ -123,12 +138,14 @@ function AtomInstances({ atomDefs = [] }) {
       const pharma = pharmacophoreMap?.get(key)
       const style = blueprintEnabled
         ? BLUEPRINT_ATOM_STYLE
-        : pharma
-          ? { color: pharma.color, emissive: pharma.emissive, emissiveIntensity: 2.2 }
-          : pharmacophoreMap
-            ? DIMMED_PHARMACOPHORE_STYLE
-            : getAtomRenderStyle(element)
-      const batchKey = `${blueprintEnabled ? 'blueprint' : element}|${style.color}|${style.emissive}|${style.emissiveIntensity}`
+        : nucleusStyle === 'thermal'
+          ? thermalStyleForElement(element)
+          : pharma
+            ? { color: pharma.color, emissive: pharma.emissive, emissiveIntensity: 2.2 }
+            : pharmacophoreMap
+              ? DIMMED_PHARMACOPHORE_STYLE
+              : getAtomRenderStyle(element)
+      const batchKey = `${blueprintEnabled ? 'blueprint' : element}|${nucleusStyle ?? ''}|${style.color}|${style.emissive}|${style.emissiveIntensity}`
       const existing = grouped.get(batchKey)
 
       if (existing) {
@@ -144,7 +161,7 @@ function AtomInstances({ atomDefs = [] }) {
     })
 
     return Array.from(grouped.values())
-  }, [atomDefs, blueprintEnabled, pharmacophoreMap])
+  }, [atomDefs, blueprintEnabled, nucleusStyle, pharmacophoreMap])
 
   // Clear hover/selection when the molecule unmounts (e.g., switching molecules).
   // Also restore the cursor in case the pointer was over an atom at unmount time.
@@ -184,14 +201,33 @@ function AtomInstances({ atomDefs = [] }) {
   return (
     <group onPointerMissed={handlePointerMissed}>
       {batches.map(({ key, style, items }) => (
-        <Instances key={key} limit={items.length}>
-          <sphereGeometry args={[1, 16, 16]} />
+        <Instances key={`${key}-${nucleusStyle ?? 'default'}`} limit={items.length}>
+          {nucleusStyle === 'chalk'
+            ? <icosahedronGeometry args={[1, 0]} />
+            : nucleusStyle === 'circuit'
+              ? <cylinderGeometry args={[1, 1, 0.18, 32]} />
+              : <sphereGeometry args={[1, 16, 16]} />}
           {blueprintEnabled ? (
             <meshBasicMaterial
               color={style.color}
               wireframe
               transparent
               opacity={0.92}
+            />
+          ) : nucleusStyle === 'chalk' ? (
+            <meshStandardMaterial color="#e8e8e0" roughness={1} metalness={0} flatShading />
+          ) : nucleusStyle === 'hologram' ? (
+            <meshBasicMaterial color={style.color} wireframe />
+          ) : nucleusStyle === 'circuit' ? (
+            <meshStandardMaterial color="#d4a843" metalness={0.9} roughness={0.25} />
+          ) : nucleusStyle === 'thermal' ? (
+            <meshStandardMaterial
+              color={style.color}
+              emissive={style.color}
+              emissiveIntensity={1.5}
+              roughness={0.18}
+              metalness={0.05}
+              toneMapped={false}
             />
           ) : (
             <meshPhysicalMaterial
