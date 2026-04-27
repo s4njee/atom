@@ -292,6 +292,7 @@ function AtomInstances({ atomDefs = [] }) {
 
 export {
   AtomInstances,
+  AtomTooltip,
   ATOM_RENDER_STYLES,
   DEFAULT_ATOM_RENDER_STYLE,
   createAtomPositionLookup,

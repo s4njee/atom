@@ -196,6 +196,107 @@ canvas {
   box-shadow: 0 4px 24px rgba(31, 79, 90, 0.18);
 }
 
+.app-shell.is-blueprint .protein-render-modes {
+  border-color: rgba(31, 79, 90, 0.45);
+  background: rgba(237, 242, 233, 0.78);
+  box-shadow: 0 4px 24px rgba(31, 79, 90, 0.16);
+}
+
+.app-shell.is-blueprint .protein-render-mode {
+  color: rgba(31, 79, 90, 0.74);
+}
+
+.app-shell.is-blueprint .protein-render-mode:hover,
+.app-shell.is-blueprint .protein-render-mode:focus-visible {
+  border-color: rgba(31, 79, 90, 0.42);
+  color: #1f4f5a;
+}
+
+.app-shell.is-blueprint .protein-render-mode.is-active {
+  background: rgba(31, 79, 90, 0.18);
+  border-color: rgba(31, 79, 90, 0.6);
+  color: #1f4f5a;
+}
+
+.mode-toggle {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+  min-width: 86px;
+  height: 38px;
+  padding: 0 13px;
+  border: 1px solid rgba(90, 160, 255, 0.28);
+  border-radius: 5px;
+  background: rgba(3, 9, 20, 0.82);
+  color: rgba(190, 225, 255, 0.86);
+  font: 13px/1 "Courier New", monospace;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 24px rgba(0, 60, 140, 0.22);
+  transition: border-color 0.15s, box-shadow 0.15s, color 0.15s, background 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.mode-toggle:hover,
+.mode-toggle:focus-visible {
+  border-color: rgba(90, 160, 255, 0.55);
+  color: #cce8ff;
+  box-shadow: 0 4px 28px rgba(0, 80, 200, 0.28), 0 0 0 1px rgba(80, 140, 255, 0.12);
+  outline: none;
+}
+
+.protein-render-modes {
+  position: fixed;
+  top: 66px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid rgba(90, 160, 255, 0.22);
+  border-radius: 5px;
+  background: rgba(3, 9, 20, 0.78);
+  box-shadow: 0 4px 24px rgba(0, 60, 140, 0.18);
+  backdrop-filter: blur(10px);
+}
+
+.protein-render-mode {
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(170, 215, 255, 0.72);
+  font: 11px/1 "Courier New", monospace;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.protein-render-mode:hover,
+.protein-render-mode:focus-visible {
+  border-color: rgba(90, 160, 255, 0.38);
+  color: #cce8ff;
+  outline: none;
+}
+
+.protein-render-mode.is-active {
+  border-color: rgba(110, 180, 255, 0.56);
+  background: rgba(90, 160, 255, 0.16);
+  color: #e2f2ff;
+}
+
+@media (max-width: 640px) {
+  .protein-render-modes {
+    top: 62px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+}
+
 .visualization-label {
   position: fixed;
   bottom: 64px;
